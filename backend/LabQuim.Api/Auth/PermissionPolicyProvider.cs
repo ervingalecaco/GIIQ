@@ -1,0 +1,30 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+
+namespace LabQuim.Api.Auth;
+
+/// <summary>
+/// Convierte cualquier nombre de política ([Authorize(Policy="solicitud.aprobar")])
+/// en un requisito de permiso, sin registrar cada política a mano.
+/// </summary>
+public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
+{
+    private readonly DefaultAuthorizationPolicyProvider _fallback;
+
+    public PermissionPolicyProvider(IOptions<AuthorizationOptions> options)
+        => _fallback = new DefaultAuthorizationPolicyProvider(options);
+
+    public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallback.GetDefaultPolicyAsync();
+
+    public Task<AuthorizationPolicy?> GetFallbackPolicyAsync() => _fallback.GetFallbackPolicyAsync();
+
+    public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
+    {
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .AddRequirements(new PermissionRequirement(policyName))
+            .Build();
+
+        return Task.FromResult<AuthorizationPolicy?>(policy);
+    }
+}

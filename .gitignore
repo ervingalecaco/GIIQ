@@ -1,0 +1,16 @@
+# Dependencias y builds
+node_modules/
+dist/
+bin/
+obj/
+backups/
+
+# Secretos locales
+appsettings.Development.json
+appsettings.Production.json
+.env.production
+.env.local
+
+# IDE
+.vs/
+*.user

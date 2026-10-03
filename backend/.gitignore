@@ -1,0 +1,14 @@
+# Build
+bin/
+obj/
+
+# Respaldos generados
+backups/
+
+# Secretos locales (no versionar)
+appsettings.Development.json
+appsettings.Production.json
+
+# IDE
+.vs/
+*.user
