@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Button, Card, Label, Select, Spinner, Textarea, TextInput } from 'flowbite-react'
+import { HiPlus, HiTrash } from 'react-icons/hi'
 import { articulosApi, catalogosApi } from '../api/catalogos'
 import { solicitudesApi } from '../api/solicitudes'
 import { apiError } from '../api/client'
+import { ErrorAlert, PageHeader } from '../components/Feedback'
 
 interface LineaForm { articuloId: number | ''; cantidad: string }
 
@@ -55,77 +58,75 @@ export function NuevaSolicitudPage() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold mb-5">Nueva solicitud</h1>
+    <div className="max-w-2xl space-y-5">
+      <PageHeader title="Nueva solicitud" subtitle="Pide reactivos y materiales para una práctica." />
 
-      <form onSubmit={onSubmit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Card>
+        <form onSubmit={onSubmit} className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="lab" className="mb-2 block">Laboratorio / práctica</Label>
+              <Select id="lab" value={laboratorioId}
+                onChange={(e) => setLaboratorioId(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Selecciona…</option>
+                {labs.data?.map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="fecha" className="mb-2 block">Fecha requerida</Label>
+              <TextInput id="fecha" type="date" value={fechaRequerida} onChange={(e) => setFechaRequerida(e.target.value)} />
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="lab" className="block text-sm font-medium text-slate-700 mb-1">Laboratorio / práctica</label>
-            <select id="lab" value={laboratorioId}
-              onChange={(e) => setLaboratorioId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-              <option value="">Selecciona…</option>
-              {labs.data?.map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Artículos solicitados</Label>
+              <Button type="button" size="xs" color="light" onClick={addLinea}>
+                <HiPlus className="me-1 h-3.5 w-3.5" /> Agregar línea
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {lineas.map((l, i) => {
+                const art = articulos.data?.find((a) => a.id === l.articuloId)
+                return (
+                  <div key={i} className="flex gap-2 items-center">
+                    <Select className="flex-1" value={l.articuloId} aria-label="Artículo"
+                      onChange={(e) => setLinea(i, { articuloId: e.target.value ? Number(e.target.value) : '' })}>
+                      <option value="">Artículo…</option>
+                      {articulos.data?.map((a) => (
+                        <option key={a.id} value={a.id}>{a.nombre} ({a.tipo === 'REACTIVO' ? 'R' : 'M'})</option>
+                      ))}
+                    </Select>
+                    <TextInput className="w-28" type="number" step="0.001" min="0" placeholder="Cant."
+                      aria-label="Cantidad" value={l.cantidad}
+                      onChange={(e) => setLinea(i, { cantidad: e.target.value })} />
+                    <span className="w-10 text-sm text-gray-500">{art?.unidad ?? ''}</span>
+                    {lineas.length > 1 && (
+                      <Button type="button" size="xs" color="light" onClick={() => delLinea(i)} aria-label="Quitar línea">
+                        <HiTrash className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
+
           <div>
-            <label htmlFor="fecha" className="block text-sm font-medium text-slate-700 mb-1">Fecha requerida</label>
-            <input id="fecha" type="date" value={fechaRequerida} onChange={(e) => setFechaRequerida(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <Label htmlFor="obs" className="mb-2 block">Observaciones</Label>
+            <Textarea id="obs" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={2} />
           </div>
-        </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-slate-700">Artículos solicitados</label>
-            <button type="button" onClick={addLinea} className="text-sm text-teal-700 hover:underline">+ Agregar línea</button>
+          {error && <ErrorAlert>{error}</ErrorAlert>}
+
+          <div className="flex gap-3">
+            <Button type="submit" disabled={saving}>
+              {saving ? <><Spinner size="sm" light className="me-2" /> Guardando…</> : 'Crear solicitud'}
+            </Button>
+            <Button type="button" color="light" onClick={() => navigate('/solicitudes')}>Cancelar</Button>
           </div>
-          <div className="space-y-2">
-            {lineas.map((l, i) => {
-              const art = articulos.data?.find((a) => a.id === l.articuloId)
-              return (
-                <div key={i} className="flex gap-2 items-center">
-                  <select value={l.articuloId}
-                    onChange={(e) => setLinea(i, { articuloId: e.target.value ? Number(e.target.value) : '' })}
-                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-                    <option value="">Artículo…</option>
-                    {articulos.data?.map((a) => (
-                      <option key={a.id} value={a.id}>{a.nombre} ({a.tipo === 'REACTIVO' ? 'R' : 'M'})</option>
-                    ))}
-                  </select>
-                  <input type="number" step="0.001" min="0" placeholder="Cant." value={l.cantidad}
-                    onChange={(e) => setLinea(i, { cantidad: e.target.value })}
-                    className="w-24 rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                  <span className="w-10 text-sm text-slate-500">{art?.unidad ?? ''}</span>
-                  {lineas.length > 1 && (
-                    <button type="button" onClick={() => delLinea(i)} className="text-slate-400 hover:text-rose-600 px-1">✕</button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="obs" className="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
-          <textarea id="obs" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={2}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-        </div>
-
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-
-        <div className="flex gap-3">
-          <button type="submit" disabled={saving}
-            className="rounded-md bg-teal-700 text-white px-5 py-2 text-sm font-medium hover:bg-teal-800 disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Crear solicitud'}
-          </button>
-          <button type="button" onClick={() => navigate('/solicitudes')}
-            className="rounded-md border border-slate-300 px-5 py-2 text-sm hover:bg-slate-100">
-            Cancelar
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   )
 }

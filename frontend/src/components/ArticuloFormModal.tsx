@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Button, Label, Select, Spinner, TextInput } from 'flowbite-react'
 import { articulosApi, catalogosApi, type ArticuloPayload } from '../api/catalogos'
 import { apiError } from '../api/client'
+import { ErrorAlert } from './Feedback'
 import { Modal } from './Modal'
 
-const input = 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-const label = 'block text-sm font-medium text-slate-700 mb-1'
+const label = 'mb-2 block'
 
 export function ArticuloFormModal({ articuloId, onClose, onSaved }: {
   articuloId: number | 'nuevo'
@@ -79,101 +80,99 @@ export function ArticuloFormModal({ articuloId, onClose, onSaved }: {
   }
 
   return (
-    <Modal title={esNuevo ? 'Nuevo artículo' : 'Editar artículo'} onClose={onClose}>
+    <Modal title={esNuevo ? 'Nuevo artículo' : 'Editar artículo'} onClose={onClose} size="2xl">
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={label} htmlFor="tipo">Tipo</label>
-            <select id="tipo" className={input} value={tipo} disabled={!esNuevo}
+            <Label className={label} htmlFor="tipo">Tipo</Label>
+            <Select id="tipo" value={tipo} disabled={!esNuevo}
               onChange={(e) => setTipo(e.target.value as 'REACTIVO' | 'MATERIAL')}>
               <option value="REACTIVO">Reactivo</option>
               <option value="MATERIAL">Material / cristalería</option>
-            </select>
+            </Select>
           </div>
           <div>
-            <label className={label} htmlFor="codigo">Código</label>
-            <input id="codigo" className={input} value={codigo} disabled={!esNuevo}
+            <Label className={label} htmlFor="codigo">Código</Label>
+            <TextInput id="codigo" value={codigo} disabled={!esNuevo}
               onChange={(e) => setCodigo(e.target.value)} required />
           </div>
         </div>
 
         <div>
-          <label className={label} htmlFor="nombre">Nombre</label>
-          <input id="nombre" className={input} value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+          <Label className={label} htmlFor="nombre">Nombre</Label>
+          <TextInput id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className={label} htmlFor="cat">Categoría</label>
-            <select id="cat" className={input} value={categoriaId}
+            <Label className={label} htmlFor="cat">Categoría</Label>
+            <Select id="cat" value={categoriaId}
               onChange={(e) => setCategoriaId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">…</option>
               {categorias.data?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
+            </Select>
           </div>
           <div>
-            <label className={label} htmlFor="uni">Unidad</label>
-            <select id="uni" className={input} value={unidadId}
+            <Label className={label} htmlFor="uni">Unidad</Label>
+            <Select id="uni" value={unidadId}
               onChange={(e) => setUnidadId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">…</option>
               {unidades.data?.map((u) => <option key={u.id} value={u.id}>{u.abreviatura}</option>)}
-            </select>
+            </Select>
           </div>
           <div>
-            <label className={label} htmlFor="min">Stock mínimo</label>
-            <input id="min" type="number" step="0.001" min="0" className={input}
+            <Label className={label} htmlFor="min">Stock mínimo</Label>
+            <TextInput id="min" type="number" step="0.001" min="0"
               value={stockMinimo} onChange={(e) => setStockMinimo(e.target.value)} />
           </div>
         </div>
 
         {tipo === 'REACTIVO' && (
-          <fieldset className="border border-slate-200 rounded-lg p-3 space-y-3">
-            <legend className="text-xs font-medium text-slate-500 px-1">Ficha del reactivo</legend>
+          <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
+            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 px-1">Ficha del reactivo</legend>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={label} htmlFor="cas">CAS</label>
-                <input id="cas" className={input} value={cas} onChange={(e) => setCas(e.target.value)} />
+                <Label className={label} htmlFor="cas">CAS</Label>
+                <TextInput id="cas" value={cas} onChange={(e) => setCas(e.target.value)} />
               </div>
               <div>
-                <label className={label} htmlFor="formula">Fórmula</label>
-                <input id="formula" className={input} value={formula} onChange={(e) => setFormula(e.target.value)} />
+                <Label className={label} htmlFor="formula">Fórmula</Label>
+                <TextInput id="formula" value={formula} onChange={(e) => setFormula(e.target.value)} />
               </div>
               <div>
-                <label className={label} htmlFor="ef">Estado físico</label>
-                <select id="ef" className={input} value={estadoFisico} onChange={(e) => setEstadoFisico(e.target.value)}>
+                <Label className={label} htmlFor="ef">Estado físico</Label>
+                <Select id="ef" value={estadoFisico} onChange={(e) => setEstadoFisico(e.target.value)}>
                   <option value="">…</option>
                   <option value="SOLIDO">Sólido</option>
                   <option value="LIQUIDO">Líquido</option>
                   <option value="GAS">Gas</option>
-                </select>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={label} htmlFor="conc">Concentración</label>
-                <input id="conc" className={input} value={concentracion} onChange={(e) => setConcentracion(e.target.value)} placeholder="ej. 37%, 1 M" />
+                <Label className={label} htmlFor="conc">Concentración</Label>
+                <TextInput id="conc" value={concentracion} onChange={(e) => setConcentracion(e.target.value)} placeholder="ej. 37%, 1 M" />
               </div>
               <div>
-                <label className={label} htmlFor="peligro">Clasificación de peligro (GHS)</label>
-                <input id="peligro" className={input} value={peligro} onChange={(e) => setPeligro(e.target.value)} placeholder="ej. Corrosivo, Inflamable" />
+                <Label className={label} htmlFor="peligro">Clasificación de peligro (GHS)</Label>
+                <TextInput id="peligro" value={peligro} onChange={(e) => setPeligro(e.target.value)} placeholder="ej. Corrosivo, Inflamable" />
               </div>
             </div>
             <div>
-              <label className={label} htmlFor="cond">Condiciones de almacenamiento</label>
-              <input id="cond" className={input} value={condiciones} onChange={(e) => setCondiciones(e.target.value)} />
+              <Label className={label} htmlFor="cond">Condiciones de almacenamiento</Label>
+              <TextInput id="cond" value={condiciones} onChange={(e) => setCondiciones(e.target.value)} />
             </div>
           </fieldset>
         )}
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <ErrorAlert>{error}</ErrorAlert>}
 
         <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={saving}
-            className="rounded-md bg-teal-700 text-white px-5 py-2 text-sm font-medium hover:bg-teal-800 disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
-          <button type="button" onClick={onClose}
-            className="rounded-md border border-slate-300 px-5 py-2 text-sm hover:bg-slate-100">Cancelar</button>
+          <Button type="submit" disabled={saving}>
+            {saving ? <><Spinner size="sm" light className="me-2" /> Guardando…</> : 'Guardar'}
+          </Button>
+          <Button type="button" color="light" onClick={onClose}>Cancelar</Button>
         </div>
       </form>
     </Modal>

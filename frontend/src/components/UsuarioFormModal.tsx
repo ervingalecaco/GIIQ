@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Button, Label, Select, Spinner, TextInput } from 'flowbite-react'
 import { rolesApi, usuariosApi } from '../api/admin'
 import { apiError } from '../api/client'
+import { ErrorAlert } from './Feedback'
 import { Modal } from './Modal'
 import type { UsuarioAdmin } from '../types'
 
-const input = 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-const label = 'block text-sm font-medium text-slate-700 mb-1'
+const label = 'mb-2 block'
 
 export function UsuarioFormModal({ usuario, onClose, onSaved }: {
   usuario: UsuarioAdmin | 'nuevo'
@@ -61,45 +62,43 @@ export function UsuarioFormModal({ usuario, onClose, onSaved }: {
     <Modal title={esNuevo ? 'Nuevo usuario' : 'Editar usuario'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className={label} htmlFor="nom">Nombre completo</label>
-          <input id="nom" className={input} value={nombreCompleto} onChange={(e) => setNombre(e.target.value)} required />
+          <Label className={label} htmlFor="nom">Nombre completo</Label>
+          <TextInput id="nom" value={nombreCompleto} onChange={(e) => setNombre(e.target.value)} required />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={label} htmlFor="usr">Usuario</label>
-            <input id="usr" className={input} value={nombreUsuario} disabled={!esNuevo}
+            <Label className={label} htmlFor="usr">Usuario</Label>
+            <TextInput id="usr" value={nombreUsuario} disabled={!esNuevo}
               onChange={(e) => setUsuario(e.target.value)} required autoComplete="off" />
           </div>
           <div>
-            <label className={label} htmlFor="rol">Rol</label>
-            <select id="rol" className={input} value={rolId}
+            <Label className={label} htmlFor="rol">Rol</Label>
+            <Select id="rol" value={rolId}
               onChange={(e) => setRolId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">…</option>
               {roles.data?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-            </select>
+            </Select>
           </div>
         </div>
         {esNuevo && (
           <div>
-            <label className={label} htmlFor="pwd">Contraseña</label>
-            <input id="pwd" type="password" className={input} value={password}
+            <Label className={label} htmlFor="pwd">Contraseña</Label>
+            <TextInput id="pwd" type="password" value={password}
               onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
           </div>
         )}
         <div>
-          <label className={label} htmlFor="mail">Email</label>
-          <input id="mail" type="email" className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Label className={label} htmlFor="mail">Email</Label>
+          <TextInput id="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <ErrorAlert>{error}</ErrorAlert>}
 
         <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={saving}
-            className="rounded-md bg-teal-700 text-white px-5 py-2 text-sm font-medium hover:bg-teal-800 disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
-          <button type="button" onClick={onClose}
-            className="rounded-md border border-slate-300 px-5 py-2 text-sm hover:bg-slate-100">Cancelar</button>
+          <Button type="submit" disabled={saving}>
+            {saving ? <><Spinner size="sm" light className="me-2" /> Guardando…</> : 'Guardar'}
+          </Button>
+          <Button type="button" color="light" onClick={onClose}>Cancelar</Button>
         </div>
       </form>
     </Modal>

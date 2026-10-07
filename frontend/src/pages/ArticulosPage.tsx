@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Badge, Button, Select, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow,
+} from 'flowbite-react'
+import { HiPlus } from 'react-icons/hi'
 import { articulosApi } from '../api/catalogos'
 import { apiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { ArticuloFormModal } from '../components/ArticuloFormModal'
 import { EntradaFormModal } from '../components/EntradaFormModal'
+import { ActivoBadge, Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import type { Articulo } from '../types'
 
 export function ArticulosPage() {
@@ -33,88 +38,73 @@ export function ArticulosPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold">Artículos</h1>
-        <div className="flex items-center gap-3">
-          <select value={tipo} onChange={(e) => setTipo(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm bg-white">
-            <option value="">Todos</option>
-            <option value="REACTIVO">Reactivos</option>
-            <option value="MATERIAL">Materiales</option>
-          </select>
-          {hasPerm('articulos.crear') && (
-            <button onClick={() => setEditar('nuevo')}
-              className="rounded-md bg-teal-700 text-white px-4 py-1.5 text-sm font-medium hover:bg-teal-800">
-              Nuevo artículo
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Artículos">
+        <Select sizing="sm" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <option value="">Todos</option>
+          <option value="REACTIVO">Reactivos</option>
+          <option value="MATERIAL">Materiales</option>
+        </Select>
+        {hasPerm('articulos.crear') && (
+          <Button size="sm" onClick={() => setEditar('nuevo')}>
+            <HiPlus className="me-1.5 h-4 w-4" /> Nuevo artículo
+          </Button>
+        )}
+      </PageHeader>
 
-      {isLoading && <p className="text-slate-500">Cargando…</p>}
-      {error && <p className="text-rose-600">{apiError(error)}</p>}
+      {isLoading && <Cargando />}
+      {error && <ErrorAlert error={error} />}
 
       {data && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-left">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Código</th>
-                <th className="px-4 py-2.5 font-medium">Nombre</th>
-                <th className="px-4 py-2.5 font-medium">Tipo</th>
-                <th className="px-4 py-2.5 font-medium">Categoría</th>
-                <th className="px-4 py-2.5 font-medium">Unidad</th>
-                <th className="px-4 py-2.5 font-medium text-right">Mínimo</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Sin artículos.</td></tr>
-              )}
-              {data.map((a) => (
-                <tr key={a.id} className={`hover:bg-slate-50 ${!a.activo ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-2.5 font-mono text-xs">{a.codigo}</td>
-                  <td className="px-4 py-2.5">{a.nombre}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{a.tipo === 'REACTIVO' ? 'Reactivo' : 'Material'}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{a.categoria}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{a.unidad}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">{a.stockMinimo}</td>
-                  <td className="px-4 py-2.5">
-                    {a.activo
-                      ? <span className="text-xs text-emerald-600">Activo</span>
-                      : <span className="text-xs text-slate-400">Inactivo</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-2 justify-end">
-                      {hasPerm('entrada.registrar') && a.activo && (
-                        <button onClick={() => setEntrada(a)}
-                          className="rounded-md bg-teal-600 text-white px-3 py-1 text-xs font-medium hover:opacity-90">
-                          Ingresar
-                        </button>
-                      )}
-                      {hasPerm('articulos.editar') && (
-                        <button onClick={() => setEditar(a.id)}
-                          className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100">
-                          Editar
-                        </button>
-                      )}
-                      {hasPerm('articulos.eliminar') && (
-                        <button
-                          onClick={() => estado.mutate({ id: a.id, activo: !a.activo })}
-                          disabled={estado.isPending}
-                          className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100 disabled:opacity-50">
-                          {a.activo ? 'Desactivar' : 'Activar'}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable>
+          <TableHead>
+            <TableRow>
+              <TableHeadCell>Código</TableHeadCell>
+              <TableHeadCell>Nombre</TableHeadCell>
+              <TableHeadCell>Tipo</TableHeadCell>
+              <TableHeadCell>Categoría</TableHeadCell>
+              <TableHeadCell>Unidad</TableHeadCell>
+              <TableHeadCell className="text-right">Mínimo</TableHeadCell>
+              <TableHeadCell>Estado</TableHeadCell>
+              <TableHeadCell className="text-right">Acciones</TableHeadCell>
+            </TableRow>
+          </TableHead>
+          <TableBody className="divide-y">
+            {data.length === 0 && (
+              <TableRow><TableCell colSpan={8} className="text-center text-gray-400">Sin artículos.</TableCell></TableRow>
+            )}
+            {data.map((a) => (
+              <TableRow key={a.id} className={`bg-white ${!a.activo ? 'opacity-60' : ''}`}>
+                <TableCell className="font-mono text-xs">{a.codigo}</TableCell>
+                <TableCell className="text-gray-900">{a.nombre}</TableCell>
+                <TableCell>
+                  {a.tipo === 'REACTIVO'
+                    ? <Badge color="purple" className="w-fit">Reactivo</Badge>
+                    : <Badge color="cyan" className="w-fit">Material</Badge>}
+                </TableCell>
+                <TableCell>{a.categoria}</TableCell>
+                <TableCell>{a.unidad}</TableCell>
+                <TableCell className="text-right tabular-nums">{a.stockMinimo}</TableCell>
+                <TableCell><ActivoBadge activo={a.activo} /></TableCell>
+                <TableCell>
+                  <div className="flex gap-2 justify-end">
+                    {hasPerm('entrada.registrar') && a.activo && (
+                      <Button size="xs" onClick={() => setEntrada(a)}>Ingresar</Button>
+                    )}
+                    {hasPerm('articulos.editar') && (
+                      <Button size="xs" color="light" onClick={() => setEditar(a.id)}>Editar</Button>
+                    )}
+                    {hasPerm('articulos.eliminar') && (
+                      <Button size="xs" color="light" disabled={estado.isPending}
+                        onClick={() => estado.mutate({ id: a.id, activo: !a.activo })}>
+                        {a.activo ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       {editar !== null && (

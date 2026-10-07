@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Badge, Button, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow,
+} from 'flowbite-react'
+import { HiPlus } from 'react-icons/hi'
 import { usuariosApi } from '../api/admin'
 import { apiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { UsuarioFormModal } from '../components/UsuarioFormModal'
+import { ActivoBadge, Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import type { UsuarioAdmin } from '../types'
 
 export function UsuariosPage() {
@@ -33,68 +38,57 @@ export function UsuariosPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold">Usuarios</h1>
+      <PageHeader title="Usuarios">
         {hasPerm('usuarios.crear') && (
-          <button onClick={() => setForm('nuevo')}
-            className="rounded-md bg-teal-700 text-white px-4 py-1.5 text-sm font-medium hover:bg-teal-800">
-            Nuevo usuario
-          </button>
+          <Button size="sm" onClick={() => setForm('nuevo')}>
+            <HiPlus className="me-1.5 h-4 w-4" /> Nuevo usuario
+          </Button>
         )}
-      </div>
+      </PageHeader>
 
-      {isLoading && <p className="text-slate-500">Cargando…</p>}
-      {error && <p className="text-rose-600">{apiError(error)}</p>}
+      {isLoading && <Cargando />}
+      {error && <ErrorAlert error={error} />}
 
       {data && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-left">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Nombre</th>
-                <th className="px-4 py-2.5 font-medium">Usuario</th>
-                <th className="px-4 py-2.5 font-medium">Rol</th>
-                <th className="px-4 py-2.5 font-medium">Email</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.map((u) => (
-                <tr key={u.id} className={`hover:bg-slate-50 ${!u.activo ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-2.5">{u.nombreCompleto}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs">{u.usuario}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{u.rol}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{u.email ?? '—'}</td>
-                  <td className="px-4 py-2.5">
-                    {u.activo
-                      ? <span className="text-xs text-emerald-600">Activo</span>
-                      : <span className="text-xs text-slate-400">Inactivo</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-2 justify-end">
-                      {hasPerm('usuarios.editar') && (
-                        <>
-                          <button onClick={() => setForm(u)}
-                            className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100">Editar</button>
-                          <button onClick={() => resetPassword(u)}
-                            className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100">Clave</button>
-                        </>
-                      )}
-                      {hasPerm('usuarios.eliminar') && (
-                        <button onClick={() => estado.mutate({ id: u.id, activo: !u.activo })}
-                          disabled={estado.isPending}
-                          className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-100 disabled:opacity-50">
-                          {u.activo ? 'Desactivar' : 'Activar'}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable>
+          <TableHead>
+            <TableRow>
+              <TableHeadCell>Nombre</TableHeadCell>
+              <TableHeadCell>Usuario</TableHeadCell>
+              <TableHeadCell>Rol</TableHeadCell>
+              <TableHeadCell>Email</TableHeadCell>
+              <TableHeadCell>Estado</TableHeadCell>
+              <TableHeadCell className="text-right">Acciones</TableHeadCell>
+            </TableRow>
+          </TableHead>
+          <TableBody className="divide-y">
+            {data.map((u) => (
+              <TableRow key={u.id} className={`bg-white ${!u.activo ? 'opacity-60' : ''}`}>
+                <TableCell className="text-gray-900 font-medium">{u.nombreCompleto}</TableCell>
+                <TableCell className="font-mono text-xs">{u.usuario}</TableCell>
+                <TableCell><Badge color="indigo" className="w-fit">{u.rol}</Badge></TableCell>
+                <TableCell>{u.email ?? '—'}</TableCell>
+                <TableCell><ActivoBadge activo={u.activo} /></TableCell>
+                <TableCell>
+                  <div className="flex gap-2 justify-end">
+                    {hasPerm('usuarios.editar') && (
+                      <>
+                        <Button size="xs" color="light" onClick={() => setForm(u)}>Editar</Button>
+                        <Button size="xs" color="light" onClick={() => resetPassword(u)}>Clave</Button>
+                      </>
+                    )}
+                    {hasPerm('usuarios.eliminar') && (
+                      <Button size="xs" color="light" disabled={estado.isPending}
+                        onClick={() => estado.mutate({ id: u.id, activo: !u.activo })}>
+                        {u.activo ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       {form !== null && (

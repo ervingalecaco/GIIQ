@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Button, Label, Select, Spinner, TextInput } from 'flowbite-react'
 import { catalogosApi, inventarioApi } from '../api/catalogos'
 import { apiError } from '../api/client'
+import { ErrorAlert } from './Feedback'
 import { Modal } from './Modal'
 import type { Articulo } from '../types'
 
-const input = 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-const label = 'block text-sm font-medium text-slate-700 mb-1'
+const label = 'mb-2 block'
 
 export function EntradaFormModal({ articulo, onClose, onSaved }: {
   articulo: Articulo
@@ -54,56 +55,54 @@ export function EntradaFormModal({ articulo, onClose, onSaved }: {
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={label} htmlFor="cant">Cantidad ({articulo.unidad})</label>
-            <input id="cant" type="number" step="0.001" min="0" className={input}
+            <Label className={label} htmlFor="cant">Cantidad ({articulo.unidad})</Label>
+            <TextInput id="cant" type="number" step="0.001" min="0"
               value={cantidad} onChange={(e) => setCantidad(e.target.value)} required autoFocus />
           </div>
           <div>
-            <label className={label} htmlFor="lote">Código de lote</label>
-            <input id="lote" className={input} value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} />
+            <Label className={label} htmlFor="lote">Código de lote</Label>
+            <TextInput id="lote" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} />
           </div>
         </div>
 
         {esReactivo && (
           <div>
-            <label className={label} htmlFor="venc">Fecha de vencimiento</label>
-            <input id="venc" type="date" className={input} value={fechaVenc} onChange={(e) => setFechaVenc(e.target.value)} />
+            <Label className={label} htmlFor="venc">Fecha de vencimiento</Label>
+            <TextInput id="venc" type="date" value={fechaVenc} onChange={(e) => setFechaVenc(e.target.value)} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={label} htmlFor="prov">Proveedor</label>
-            <select id="prov" className={input} value={proveedorId}
+            <Label className={label} htmlFor="prov">Proveedor</Label>
+            <Select id="prov" value={proveedorId}
               onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">…</option>
               {proveedores.data?.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
+            </Select>
           </div>
           <div>
-            <label className={label} htmlFor="ubi">Ubicación</label>
-            <select id="ubi" className={input} value={ubicacionId}
+            <Label className={label} htmlFor="ubi">Ubicación</Label>
+            <Select id="ubi" value={ubicacionId}
               onChange={(e) => setUbicacionId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">…</option>
               {ubicaciones.data?.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-            </select>
+            </Select>
           </div>
         </div>
 
         <div>
-          <label className={label} htmlFor="mot">Motivo / nota</label>
-          <input id="mot" className={input} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <Label className={label} htmlFor="mot">Motivo / nota</Label>
+          <TextInput id="mot" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </div>
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <ErrorAlert>{error}</ErrorAlert>}
 
         <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={saving}
-            className="rounded-md bg-teal-700 text-white px-5 py-2 text-sm font-medium hover:bg-teal-800 disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Registrar entrada'}
-          </button>
-          <button type="button" onClick={onClose}
-            className="rounded-md border border-slate-300 px-5 py-2 text-sm hover:bg-slate-100">Cancelar</button>
+          <Button type="submit" disabled={saving}>
+            {saving ? <><Spinner size="sm" light className="me-2" /> Guardando…</> : 'Registrar entrada'}
+          </Button>
+          <Button type="button" color="light" onClick={onClose}>Cancelar</Button>
         </div>
       </form>
     </Modal>

@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react'
+import { Modal as FbModal, ModalBody, ModalHeader } from 'flowbite-react'
 
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+/** Modal de Flowbite con la misma API de antes: se monta abierto y se cierra con onClose. */
+export function Modal({ title, onClose, children, size = 'lg' }: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+  size?: 'md' | 'lg' | 'xl' | '2xl'
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-lg my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
-      </div>
-    </div>
+    <FbModal show onClose={onClose} size={size} dismissible>
+      <ModalHeader>{title}</ModalHeader>
+      <ModalBody>{children}</ModalBody>
+    </FbModal>
   )
 }

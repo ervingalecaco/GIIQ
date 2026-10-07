@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Button, Select, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow,
+} from 'flowbite-react'
+import { HiPlus } from 'react-icons/hi'
 import { solicitudesApi } from '../api/solicitudes'
 import { apiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
+import { Modal } from '../components/Modal'
 import type { EstadoSolicitud, SolicitudHeader } from '../types'
 
 const ESTADOS: EstadoSolicitud[] = [
@@ -13,6 +19,7 @@ const ESTADOS: EstadoSolicitud[] = [
 
 export function SolicitudesPage() {
   const { hasPerm } = useAuth()
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const [estado, setEstado] = useState<string>('')
   const [detalleId, setDetalleId] = useState<number | null>(null)
@@ -29,11 +36,11 @@ export function SolicitudesPage() {
   })
 
   function acciones(s: SolicitudHeader) {
-    const btns: { label: string; fn: () => Promise<unknown>; cls: string }[] = []
+    const btns: { label: string; fn: () => Promise<unknown>; color: string }[] = []
     if (s.estado === 'PENDIENTE' && hasPerm('solicitud.aprobar')) {
-      btns.push({ label: 'Aprobar', cls: 'bg-sky-600', fn: () => solicitudesApi.aprobar(s.id) })
+      btns.push({ label: 'Aprobar', color: 'blue', fn: () => solicitudesApi.aprobar(s.id) })
       btns.push({
-        label: 'Rechazar', cls: 'bg-rose-600',
+        label: 'Rechazar', color: 'red',
         fn: () => {
           const motivo = window.prompt('Motivo del rechazo:')
           if (!motivo) return Promise.resolve()
@@ -42,82 +49,72 @@ export function SolicitudesPage() {
       })
     }
     if (s.estado === 'APROBADA' && hasPerm('solicitud.preparar'))
-      btns.push({ label: 'Preparar', cls: 'bg-indigo-600', fn: () => solicitudesApi.preparar(s.id) })
+      btns.push({ label: 'Preparar', color: 'indigo', fn: () => solicitudesApi.preparar(s.id) })
     if (s.estado === 'PREPARADA' && hasPerm('solicitud.entregar'))
-      btns.push({ label: 'Entregar', cls: 'bg-teal-600', fn: () => solicitudesApi.entregar(s.id) })
+      btns.push({ label: 'Entregar', color: 'indigo', fn: () => solicitudesApi.entregar(s.id) })
     if (s.estado === 'ENTREGADA' && hasPerm('solicitud.devolver'))
-      btns.push({ label: 'Devolver', cls: 'bg-emerald-600', fn: () => solicitudesApi.devolver(s.id) })
+      btns.push({ label: 'Devolver', color: 'green', fn: () => solicitudesApi.devolver(s.id) })
     return btns
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold">Solicitudes</h1>
-        <div className="flex items-center gap-3">
-          <select
-            value={estado} onChange={(e) => setEstado(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm bg-white"
-          >
-            <option value="">Todos los estados</option>
-            {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
-          </select>
-          {hasPerm('solicitud.crear') && (
-            <Link to="/solicitudes/nueva" className="rounded-md bg-teal-700 text-white px-4 py-1.5 text-sm font-medium hover:bg-teal-800">
-              Nueva solicitud
-            </Link>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Solicitudes">
+        <Select sizing="sm" value={estado} onChange={(e) => setEstado(e.target.value)}>
+          <option value="">Todos los estados</option>
+          {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+        </Select>
+        {hasPerm('solicitud.crear') && (
+          <Button size="sm" onClick={() => navigate('/solicitudes/nueva')}>
+            <HiPlus className="me-1.5 h-4 w-4" /> Nueva solicitud
+          </Button>
+        )}
+      </PageHeader>
 
-      {isLoading && <p className="text-slate-500">Cargando…</p>}
-      {error && <p className="text-rose-600">{apiError(error)}</p>}
+      {isLoading && <Cargando />}
+      {error && <ErrorAlert error={error} />}
 
       {data && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-left">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">#</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Profesor</th>
-                <th className="px-4 py-2.5 font-medium">Laboratorio</th>
-                <th className="px-4 py-2.5 font-medium">Fecha</th>
-                <th className="px-4 py-2.5 font-medium text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Sin solicitudes.</td></tr>
-              )}
-              {data.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-2.5">
-                    <button className="text-teal-700 hover:underline font-medium"
-                      onClick={() => setDetalleId(detalleId === s.id ? null : s.id)}>
-                      {s.id}
-                    </button>
-                  </td>
-                  <td className="px-4 py-2.5"><EstadoBadge estado={s.estado} /></td>
-                  <td className="px-4 py-2.5">{s.profesor}</td>
-                  <td className="px-4 py-2.5">{s.laboratorio}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{new Date(s.fechaSolicitud).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-2 justify-end">
-                      {acciones(s).map((b) => (
-                        <button key={b.label} disabled={run.isPending}
-                          onClick={() => run.mutate(b.fn)}
-                          className={`${b.cls} text-white rounded-md px-3 py-1 text-xs font-medium hover:opacity-90 disabled:opacity-50`}>
-                          {b.label}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable>
+          <TableHead>
+            <TableRow>
+              <TableHeadCell>#</TableHeadCell>
+              <TableHeadCell>Estado</TableHeadCell>
+              <TableHeadCell>Profesor</TableHeadCell>
+              <TableHeadCell>Laboratorio</TableHeadCell>
+              <TableHeadCell>Fecha</TableHeadCell>
+              <TableHeadCell className="text-right">Acciones</TableHeadCell>
+            </TableRow>
+          </TableHead>
+          <TableBody className="divide-y">
+            {data.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center text-gray-400">Sin solicitudes.</TableCell></TableRow>
+            )}
+            {data.map((s) => (
+              <TableRow key={s.id} className="bg-white">
+                <TableCell>
+                  <button className="font-medium text-primary-700 hover:underline" onClick={() => setDetalleId(s.id)}>
+                    {s.id}
+                  </button>
+                </TableCell>
+                <TableCell><EstadoBadge estado={s.estado} /></TableCell>
+                <TableCell className="text-gray-900">{s.profesor}</TableCell>
+                <TableCell>{s.laboratorio}</TableCell>
+                <TableCell>{new Date(s.fechaSolicitud).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <div className="flex gap-2 justify-end">
+                    {acciones(s).map((b) => (
+                      <Button key={b.label} size="xs" color={b.color} disabled={run.isPending}
+                        onClick={() => run.mutate(b.fn)}>
+                        {b.label}
+                      </Button>
+                    ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       {detalleId && <Detalle id={detalleId} onClose={() => setDetalleId(null)} />}
@@ -132,44 +129,44 @@ function Detalle({ id, onClose }: { id: number; onClose: () => void }) {
   })
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold">Detalle de la solicitud #{id}</h2>
-        <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Cerrar</button>
-      </div>
-      {isLoading && <p className="text-slate-500">Cargando…</p>}
+    <Modal title={`Detalle de la solicitud #${id}`} onClose={onClose} size="2xl">
+      {isLoading && <Cargando />}
       {data && (
-        <>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-sm text-gray-600 flex-wrap">
+            <EstadoBadge estado={data.cabecera.estado} />
+            {[data.cabecera.profesor, data.cabecera.laboratorio].filter(Boolean).join(' · ')}
+          </div>
           {data.cabecera.motivoRechazo && (
-            <p className="text-sm text-rose-600 mb-2">Rechazo: {data.cabecera.motivoRechazo}</p>
+            <ErrorAlert>Rechazo: {data.cabecera.motivoRechazo}</ErrorAlert>
           )}
           {data.cabecera.observaciones && (
-            <p className="text-sm text-slate-500 mb-3">Obs: {data.cabecera.observaciones}</p>
+            <p className="text-sm text-gray-500">Obs: {data.cabecera.observaciones}</p>
           )}
-          <table className="w-full text-sm">
-            <thead className="text-slate-500 text-left">
-              <tr>
-                <th className="py-1.5 font-medium">Artículo</th>
-                <th className="py-1.5 font-medium">Tipo</th>
-                <th className="py-1.5 font-medium text-right">Solicitada</th>
-                <th className="py-1.5 font-medium text-right">Preparada</th>
-                <th className="py-1.5 font-medium text-right">Devuelta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>Artículo</TableHeadCell>
+                <TableHeadCell>Tipo</TableHeadCell>
+                <TableHeadCell className="text-right">Solicitada</TableHeadCell>
+                <TableHeadCell className="text-right">Preparada</TableHeadCell>
+                <TableHeadCell className="text-right">Devuelta</TableHeadCell>
+              </TableRow>
+            </TableHead>
+            <TableBody className="divide-y">
               {data.lineas.map((l) => (
-                <tr key={l.id}>
-                  <td className="py-1.5">{l.articulo}</td>
-                  <td className="py-1.5 text-slate-500">{l.tipo}</td>
-                  <td className="py-1.5 text-right tabular-nums">{l.cantSolicitada} {l.unidad}</td>
-                  <td className="py-1.5 text-right tabular-nums">{l.cantPreparada}</td>
-                  <td className="py-1.5 text-right tabular-nums">{l.cantDevuelta}</td>
-                </tr>
+                <TableRow key={l.id} className="bg-white">
+                  <TableCell className="text-gray-900">{l.articulo}</TableCell>
+                  <TableCell>{l.tipo}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.cantSolicitada} {l.unidad}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.cantPreparada}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.cantDevuelta}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </>
+            </TableBody>
+          </Table>
+        </div>
       )}
-    </div>
+    </Modal>
   )
 }
