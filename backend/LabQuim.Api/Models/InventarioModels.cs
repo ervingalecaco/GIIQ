@@ -13,6 +13,13 @@ public sealed class ArticuloDto
     public string? Unidad { get; set; }
     public decimal StockMinimo { get; set; }
     public bool Activo { get; set; }
+    // Rombo NFPA 704 (solo reactivos; null si aún no se ha clasificado).
+    public int? NfpaSalud { get; set; }
+    public int? NfpaInflamabilidad { get; set; }
+    public int? NfpaReactividad { get; set; }
+    public string? NfpaEspecial { get; set; }
+    /// <summary>Fecha de la foto de referencia (cristalería); null si no tiene. Sirve de versión para la caché.</summary>
+    public DateTime? ImagenActualizada { get; set; }
 }
 
 public sealed class ExistenciaDto

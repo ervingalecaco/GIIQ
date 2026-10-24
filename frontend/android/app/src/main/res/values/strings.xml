@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BioQ</string>
+    <string name="title_activity_main">BioQ</string>
+    <string name="package_name">com.bioq.inventario</string>
+    <string name="custom_url_scheme">com.bioq.inventario</string>
+</resources>

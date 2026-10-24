@@ -9,6 +9,7 @@ import { respaldosApi } from '../api/respaldos'
 import { descargarArchivo } from '../api/reportes'
 import { apiError } from '../api/client'
 import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
+import { Paginador, usePaginacion } from '../components/Paginacion'
 
 function tamano(bytes?: number | null): string {
   if (!bytes) return '—'
@@ -24,6 +25,7 @@ export function RespaldosPage() {
   const [confirmar, setConfirmar] = useState(false)
 
   const { data, isLoading, error } = useQuery({ queryKey: ['respaldos'], queryFn: respaldosApi.list })
+  const pag = usePaginacion(data)
 
   const crear = useMutation({
     mutationFn: respaldosApi.crear,
@@ -55,7 +57,7 @@ export function RespaldosPage() {
       <Card>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
               <HiDatabase className="h-5 w-5" />
             </span>
             <div>
@@ -115,7 +117,7 @@ export function RespaldosPage() {
               {data.length === 0 && (
                 <TableRow><TableCell colSpan={5} className="text-center text-gray-400">Aún no hay respaldos.</TableCell></TableRow>
               )}
-              {data.map((r) => (
+              {pag.visibles?.map((r) => (
                 <TableRow key={r.id} className="bg-white">
                   <TableCell className="font-mono text-xs text-gray-900">{r.archivo}</TableCell>
                   <TableCell>{new Date(r.fecha).toLocaleString()}</TableCell>
@@ -134,6 +136,7 @@ export function RespaldosPage() {
             </TableBody>
           </Table>
         )}
+        {data && <Paginador p={pag} nombre="respaldos" />}
       </div>
 
       {/* Confirmación de restauración */}

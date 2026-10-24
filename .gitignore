@@ -14,3 +14,10 @@ appsettings.Production.json
 # IDE
 .vs/
 *.user
+
+# Archivos generados y configuración local
+*.tsbuildinfo
+.claude/settings.local.json
+
+# APK generadas (se compilan con: cd frontend && npm run apk)
+*.apk

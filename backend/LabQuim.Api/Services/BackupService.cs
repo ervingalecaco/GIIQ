@@ -40,7 +40,9 @@ public sealed class BackupService
         var args = new List<string>
         {
             $"--host={cs.Server}", $"--port={cs.Port}", $"--user={cs.UserID}",
-            "--default-character-set=utf8mb4", "--routines", "--single-transaction",
+            // --hex-blob: las fotos de la cristalería (MEDIUMBLOB) se escriben en hexadecimal
+            // para que el .sql sea texto puro y se restaure sin corromperlas.
+            "--default-character-set=utf8mb4", "--routines", "--single-transaction", "--hex-blob",
             cs.Database, $"--result-file={ruta}",
         };
 

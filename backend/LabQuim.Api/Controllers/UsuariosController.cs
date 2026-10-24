@@ -19,6 +19,13 @@ public sealed class UsuariosController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<UsuarioListDto>>> List(CancellationToken ct)
         => Ok(await _repo.ListAsync(ct));
 
+    /// <summary>Verificación previa en el formulario: ¿el usuario y el código están libres?</summary>
+    [HttpGet("disponibilidad")]
+    [Authorize(Policy = "usuarios.ver")]
+    public async Task<ActionResult<DisponibilidadDto>> Disponibilidad(
+        [FromQuery] string? usuario, [FromQuery] string? codigo, [FromQuery] int? excluirId, CancellationToken ct)
+        => Ok(await _repo.DisponibilidadAsync(usuario, codigo, excluirId, ct));
+
     [HttpGet("{id:int}")]
     [Authorize(Policy = "usuarios.ver")]
     public async Task<ActionResult<UsuarioListDto>> GetById(int id, CancellationToken ct)

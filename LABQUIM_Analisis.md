@@ -68,9 +68,9 @@ El sistema gira en torno a un **flujo de solicitud → aprobación → preparaci
 |---|---|---|
 | **Administrador** | Control total del sistema | Todo: usuarios, roles, permisos, catálogos, movimientos, reportes, respaldos |
 | **Supervisor** | Aprueba lo que se va a usar | **Aprueba/rechaza** solicitudes; ve reportes y todo el inventario. No administra usuarios ni respaldos |
-| **Profesor** | Docente que pide material para una práctica | **Crea solicitudes** de reactivos/cristalería/materiales; ve el estado de sus solicitudes y el inventario |
+| **Profesor** | Docente que pide material para una práctica | **Crea solicitudes** de reactivos/cristalería; **avala** (aprueba o rechaza) las solicitudes de sus estudiantes; ve el estado de sus solicitudes y el inventario |
 | **Bodega** | Encargado operativo del inventario | Ve solicitudes **aprobadas**, **prepara y despacha** (asigna lotes por FEFO), registra entrega y **devolución**, gestiona entradas/lotes y ajustes. No administra usuarios ni respaldos |
-| **Estudiante** | Auxiliares/estudiantes que solo verifican | Solo lectura: consultar existencias, disponibilidad, vencimientos y reportes. No modifica nada |
+| **Estudiante** | Estudiantes de las prácticas | **Crea solicitudes** eligiendo a su profesor responsable, que debe avalarlas antes de que lleguen al Supervisor; consulta existencias y el estado de sus solicitudes |
 
 El **Administrador** es el rol con mayores privilegios y acceso total.
 
@@ -84,7 +84,13 @@ solicitud  ───────────▶  la     ───────▶
 de préstamo           solicitud           y recibe devolución
 ```
 
-- Solo el **Profesor** crea solicitudes; el **Estudiante** únicamente visualiza.
+- Crean solicitudes el **Profesor** y el **Estudiante**. La del estudiante tiene un paso
+  previo: queda en `PENDIENTE_PROFESOR` hasta que **su profesor responsable** la avala
+  (pasa a `PENDIENTE`, bandeja del Supervisor) o la rechaza con motivo.
+
+```
+Estudiante ─crea─▶ PENDIENTE_PROFESOR ─Profesor avala─▶ PENDIENTE ─Supervisor aprueba─▶ APROBADA ─▶ Bodega…
+```
 - **Reactivos** solicitados se **consumen** (salida definitiva por FEFO).
 - **Cristalería/materiales** son **préstamo**: al devolverlos **reingresan a stock**.
 
@@ -174,7 +180,7 @@ módulo. Entre paréntesis, el requisito del examen que cubren.
 
 ## 7. Modelo de base de datos
 
-Base **relacional (MySQL)**. Se definen **18 tablas** (el examen pide mínimo 10).
+Base **relacional (MySQL)**. Se definen **21 tablas** (el examen pide mínimo 10).
 
 ### Seguridad y accesos
 | Tabla | Descripción |
@@ -182,7 +188,7 @@ Base **relacional (MySQL)**. Se definen **18 tablas** (el examen pide mínimo 10
 | `roles` | Roles del sistema (Administrador, Supervisor, Profesor, Bodega, Estudiante) |
 | `permisos` | Permisos individuales (ej. `reactivo.crear`, `despacho.registrar`) |
 | `rol_permiso` | Relación N:M entre roles y permisos |
-| `usuarios` | Usuarios: nombre, usuario, `password_hash` (BCrypt), rol, estado |
+| `usuarios` | Usuarios: nombres y apellidos (MAYÚSCULAS, solo letras), código único de estudiante/profesor, usuario único, `password_hash` (BCrypt), rol, estado |
 
 ### Catálogos
 | Tabla | Descripción |
@@ -191,13 +197,16 @@ Base **relacional (MySQL)**. Se definen **18 tablas** (el examen pide mínimo 10
 | `unidades_medida` | Unidades (g, mg, kg, mL, L, mol, unidad, caja…) |
 | `proveedores` | Proveedores de reactivos/materiales |
 | `ubicaciones` | Almacenes/gabinetes/estantes y sus condiciones (refrigerado, ventilado…) |
-| `laboratorios` | Laboratorios/prácticas destino de los despachos |
+| `laboratorios` | Laboratorios donde se realizan las prácticas |
+| `clases` | Clases (materias) por año de la carrera, de primero a quinto (ej. 1.er año: Química I) |
+| `clase_profesor` | Relación N:M: qué profesores imparten cada clase |
+| `practicas` | Prácticas de cada clase, cada una en un laboratorio; la solicitud se hace para una práctica |
 
 ### Artículos e inventario
 | Tabla | Descripción |
 |---|---|
-| `articulos` | Maestro de reactivos y materiales: `tipo` (REACTIVO/MATERIAL), nombre, categoría, unidad, stock mínimo, estado |
-| `reactivo_ficha` | Extensión 1:1 solo para reactivos: `cas`, `formula`, `clasificacion_peligro` (GHS), `estado_fisico`, `concentracion`, `condiciones_almacenamiento` |
+| `articulos` | Maestro de reactivos y cristalería: `tipo` (REACTIVO/CRISTALERIA), nombre, categoría, unidad, stock mínimo, estado |
+| `reactivo_ficha` | Extensión 1:1 solo para reactivos: `cas`, `formula`, `clasificacion_peligro` (GHS), `estado_fisico`, `concentracion`, `condiciones_almacenamiento` y el **rombo de seguridad NFPA 704** (obligatorio): salud/azul, inflamabilidad/rojo y reactividad/amarillo de 0 a 4, y riesgo específico/blanco (R, COR, BIO, CRYO, Xn, ALC, W, OX, ACID) |
 | `lotes` | Existencia real: cada lote de un artículo con `codigo_lote`, `fecha_vencimiento`, `cantidad_actual`, proveedor, ubicación, fecha de ingreso |
 
 ### Movimientos
@@ -243,10 +252,15 @@ reactivos.
 
 ### Regla de negocio central: préstamo vs consumo
 
+Las solicitudes se dividen en **solicitudes de reactivos** y **solicitudes de
+cristalería** (cada una con su sección en el menú); una solicitud no mezcla tipos.
+Las de reactivos se **cierran al entregarse**; las de cristalería quedan ENTREGADAS
+hasta que se registra la **devolución**.
+
 El `tipo` del artículo decide qué pasa al entregar una solicitud:
 
 - **REACTIVO → se consume.** La salida por FEFO es **definitiva**; no regresa.
-- **MATERIAL / cristalería → se presta.** La salida es temporal; al registrar la
+- **CRISTALERIA → se presta.** La salida es temporal; al registrar la
   **devolución**, la cantidad devuelta **reingresa a stock** (movimiento
   `DEVOLUCION`). Una solicitud con materiales solo se **CIERRA** cuando todo lo
   prestado fue devuelto (o se ajusta por rotura/pérdida vía `AJUSTE`).
@@ -264,7 +278,7 @@ lote y registra el `movimiento` de forma atómica.
 | 1 | Análisis y 15+ funcionalidades | Este documento — 25 funcionalidades |
 | 2 | Login + 3 roles | `usuarios`, `roles`; 5 roles: Admin/Supervisor/Profesor/Bodega/Estudiante |
 | 3 | Roles/permisos + cifrado | `permisos`, `rol_permiso`; BCrypt |
-| 4 | BD mínimo 10 tablas | 18 tablas relacionales |
+| 4 | BD mínimo 10 tablas | 21 tablas relacionales |
 | 5 | CRUD + validaciones | Todos los catálogos y movimientos |
 | 6 | 8 reportes (maestro-detalle, factura, parametrizados, Excel) | Despachos, comprobante imprimible, kardex, export Excel |
 | 7 | Dashboard con 3 gráficos | Existencias por categoría, próximos a vencer, consumo por período |

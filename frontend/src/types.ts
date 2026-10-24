@@ -13,14 +13,26 @@ export interface LoginResponse {
 }
 
 export type EstadoSolicitud =
-  | 'BORRADOR' | 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'
+  | 'BORRADOR' | 'PENDIENTE_PROFESOR' | 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'
   | 'PREPARADA' | 'ENTREGADA' | 'DEVUELTA' | 'CERRADA'
 
 export interface SolicitudHeader {
   id: number
+  tipo: TipoArticulo
   estado: EstadoSolicitud
+  /** Profesor responsable: quien la creó, o el que eligió el estudiante. */
   profesorId: number
   profesor?: string
+  /** Estudiante que la creó (vacío si la creó el profesor). */
+  estudianteId?: number | null
+  estudiante?: string | null
+  fechaAvalProfesor?: string | null
+  /** Práctica y su clase (vacías en solicitudes anteriores a este cambio). */
+  practicaId?: number | null
+  practica?: string | null
+  claseId?: number | null
+  clase?: string | null
+  claseAnio?: number | null
   supervisorId?: number
   bodegaId?: number
   laboratorioId: number
@@ -40,6 +52,8 @@ export interface SolicitudLinea {
   cantSolicitada: number
   cantPreparada: number
   cantDevuelta: number
+  /** Piezas de cristalería quebradas al devolver (dadas de baja). */
+  cantQuebrada: number
   loteId?: number
 }
 
@@ -48,9 +62,11 @@ export interface SolicitudDetalle {
   lineas: SolicitudLinea[]
 }
 
+export type TipoArticulo = 'REACTIVO' | 'CRISTALERIA'
+
 export interface Articulo {
   id: number
-  tipo: 'REACTIVO' | 'MATERIAL'
+  tipo: TipoArticulo
   codigo: string
   nombre: string
   categoria?: string
@@ -58,6 +74,13 @@ export interface Articulo {
   unidad?: string
   stockMinimo: number
   activo: boolean
+  /** Rombo NFPA 704 (solo reactivos; vacío si aún no se clasificó). */
+  nfpaSalud?: number | null
+  nfpaInflamabilidad?: number | null
+  nfpaReactividad?: number | null
+  nfpaEspecial?: string | null
+  /** Fecha de la foto de referencia (cristalería); vacía si no tiene. */
+  imagenActualizada?: string | null
 }
 
 export interface Existencia {
@@ -73,7 +96,7 @@ export interface Existencia {
 
 export interface ArticuloDetalle {
   id: number
-  tipo: 'REACTIVO' | 'MATERIAL'
+  tipo: TipoArticulo
   codigo: string
   nombre: string
   categoriaId: number
@@ -88,6 +111,12 @@ export interface ArticuloDetalle {
   estadoFisico?: string | null
   concentracion?: string | null
   condicionesAlmacenamiento?: string | null
+  nfpaSalud?: number | null
+  nfpaInflamabilidad?: number | null
+  nfpaReactividad?: number | null
+  nfpaEspecial?: string | null
+  /** Fecha de la foto de referencia (cristalería); vacía si no tiene. */
+  imagenActualizada?: string | null
 }
 
 export interface CatalogoItem {
@@ -95,9 +124,23 @@ export interface CatalogoItem {
   nombre: string
 }
 
+export interface ClaseItem extends CatalogoItem {
+  /** Año de la carrera (1 a 5). */
+  anio: number
+}
+
+export interface PracticaItem extends CatalogoItem {
+  laboratorio?: string | null
+}
+
 export interface UsuarioAdmin {
   id: number
+  nombres: string
+  apellidos: string
+  /** Calculado: nombres + apellidos. */
   nombreCompleto: string
+  /** Código de estudiante o de profesor (vacío en los demás roles). */
+  codigo?: string | null
   usuario: string
   email?: string | null
   rolId: number
@@ -172,4 +215,81 @@ export interface Respaldo {
   fecha: string
   usuario?: string | null
   observacion?: string | null
+}
+
+// ---------------------------------------------------------------- Bajas y cuentas
+export type CausaBaja = 'QUEBRADO' | 'EXTRAVIADO' | 'DETERIORADO'
+
+export interface Baja {
+  id: number
+  fecha: string
+  articuloId: number
+  codigo: string
+  articulo: string
+  unidad?: string
+  cantidad: number
+  causa: CausaBaja
+  solicitudId?: number | null
+  estudianteId?: number | null
+  estudiante?: string | null
+  estudianteCodigo?: string | null
+  registradoPor?: string
+  observacion?: string | null
+  /** Estado del cargo que generó; vacío si no hubo responsable. */
+  estadoCargo?: 'PENDIENTE' | 'SALDADO' | null
+}
+
+export interface CuentaResumen {
+  estudianteId: number
+  codigo?: string | null
+  estudiante: string
+  activo: boolean
+  cargosPendientes: number
+  piezasPendientes: number
+  cargosTotales: number
+  ultimaBaja?: string | null
+}
+
+export interface Cargo {
+  id: number
+  bajaId: number
+  fecha: string
+  articuloId: number
+  codigo: string
+  articulo: string
+  unidad?: string
+  cantidad: number
+  cantidadRepuesta: number
+  estado: 'PENDIENTE' | 'SALDADO'
+  saldadoEn?: string | null
+  causa: CausaBaja
+  solicitudId?: number | null
+  observacion?: string | null
+  imagenActualizada?: string | null
+}
+
+export interface Reposicion {
+  id: number
+  cargoId: number
+  fecha: string
+  articulo: string
+  cantidad: number
+  recibidoPor?: string
+  observacion?: string | null
+}
+
+export interface CuentaDetalle {
+  resumen: CuentaResumen
+  cargos: Cargo[]
+  reposiciones: Reposicion[]
+}
+
+export interface EstudianteOpcion { id: number; codigo?: string | null; nombre: string }
+
+export interface Constancia {
+  folio: number
+  fecha: string
+  estudiante: string
+  codigo?: string | null
+  emitidaPor?: string
 }

@@ -12,11 +12,25 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 })
 
-// Ajustes globales de Flowbite: las tablas hacen scroll horizontal en pantallas angostas.
+// Ajustes globales de Flowbite (se combinan con sus clases por defecto):
+// tablas con scroll horizontal en pantallas angostas y encabezados técnicos en mono,
+// tarjetas planas con borde fino y esquinas sobrias.
 const theme = createTheme({
   table: {
-    root: { wrapper: 'relative overflow-x-auto rounded-lg border border-gray-200 bg-white' },
+    root: {
+      base: 'text-gray-600',
+      wrapper: 'relative overflow-x-auto rounded-lg border border-gray-200 bg-white',
+    },
+    head: {
+      base: 'font-mono text-[11px] font-medium tracking-wider text-gray-500',
+      cell: { base: 'bg-slate-50 px-4 py-2.5 border-b border-gray-200' },
+    },
+    body: { cell: { base: 'px-4 py-3' } },
+    row: { hovered: 'hover:bg-primary-50/50' },
   },
+  card: { root: { base: 'rounded-lg shadow-none' } },
+  button: { base: 'rounded-md' },
+  badge: { root: { base: 'rounded' } },
 })
 
 createRoot(document.getElementById('root')!).render(

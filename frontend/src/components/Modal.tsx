@@ -6,7 +6,7 @@ export function Modal({ title, onClose, children, size = 'lg' }: {
   title: string
   onClose: () => void
   children: ReactNode
-  size?: 'md' | 'lg' | 'xl' | '2xl'
+  size?: 'md' | 'lg' | 'xl' | '2xl' | '7xl'
 }) {
   return (
     <FbModal show onClose={onClose} size={size} dismissible>

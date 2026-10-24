@@ -22,11 +22,16 @@ api.interceptors.response.use(
   },
 )
 
-/** Extrae el mensaje de error del backend (ProblemDetails del middleware). */
+/**
+ * Extrae el mensaje de error del backend: `detail` (ProblemDetails del middleware)
+ * o, si es un error de validación del modelo, los mensajes de cada campo.
+ */
 export function apiError(error: unknown, fallback = 'Ocurrió un error.'): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { detail?: string } | undefined
-    return data?.detail ?? error.message ?? fallback
+    const data = error.response?.data as { detail?: string; errors?: Record<string, string[]> } | undefined
+    if (data?.detail) return data.detail
+    if (data?.errors) return [...new Set(Object.values(data.errors).flat())].join(' ')
+    return error.message ?? fallback
   }
   return fallback
 }

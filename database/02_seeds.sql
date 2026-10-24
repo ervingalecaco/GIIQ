@@ -11,9 +11,9 @@ USE labquim;
 INSERT INTO roles (nombre, descripcion) VALUES
   ('Administrador', 'Control total del sistema'),
   ('Supervisor',    'Aprueba o rechaza solicitudes; ve reportes e inventario'),
-  ('Profesor',      'Crea solicitudes de préstamo de reactivos y materiales'),
+  ('Profesor',      'Crea solicitudes y avala las de sus estudiantes'),
   ('Bodega',        'Prepara, entrega y recibe devoluciones; gestiona lotes'),
-  ('Estudiante',    'Solo visualización de existencias y reportes');
+  ('Estudiante',    'Crea solicitudes (las avala su profesor) y consulta existencias');
 
 -- -----------------------------------------------------------------------------
 -- Permisos
@@ -41,10 +41,17 @@ INSERT INTO permisos (codigo, descripcion, modulo) VALUES
   -- Solicitudes (flujo)
   ('solicitud.crear',     'Crear solicitudes',            'solicitudes'),
   ('solicitud.ver',       'Ver solicitudes',              'solicitudes'),
+  ('solicitud.avalar',    'Avalar solicitudes de sus estudiantes (profesor)', 'solicitudes'),
   ('solicitud.aprobar',   'Aprobar/rechazar solicitudes', 'solicitudes'),
   ('solicitud.preparar',  'Preparar solicitudes',         'solicitudes'),
   ('solicitud.entregar',  'Entregar solicitudes',         'solicitudes'),
   ('solicitud.devolver',  'Registrar devoluciones',       'solicitudes'),
+  -- Bajas y cuentas de estudiantes
+  ('baja.registrar',       'Registrar bajas de cristalería',              'inventario'),
+  ('cuentas.ver',          'Ver cuentas de estudiantes (piezas por reponer)', 'cuentas'),
+  ('reposicion.registrar', 'Registrar reposiciones de estudiantes',        'cuentas'),
+  ('solvencia.emitir',     'Emitir constancias de solvencia',              'cuentas'),
+  ('cuenta.propia',        'Ver su propia cuenta (estudiante)',            'cuentas'),
   -- Reportes
   ('reporte.ver',         'Ver/exportar reportes',        'reportes'),
   ('dashboard.ver',       'Ver dashboard',                'reportes'),
@@ -70,7 +77,7 @@ WHERE r.nombre = 'Supervisor'
   AND p.codigo IN (
     'solicitud.ver','solicitud.aprobar',
     'inventario.ver','lotes.ver','articulos.ver','catalogos.ver',
-    'reporte.ver','dashboard.ver','auditoria.ver');
+    'reporte.ver','dashboard.ver','auditoria.ver','cuentas.ver');
 
 -- Profesor
 INSERT INTO rol_permiso (rol_id, permiso_id)
@@ -78,7 +85,7 @@ SELECT r.id, p.id
 FROM roles r JOIN permisos p
 WHERE r.nombre = 'Profesor'
   AND p.codigo IN (
-    'solicitud.crear','solicitud.ver',
+    'solicitud.crear','solicitud.ver','solicitud.avalar',
     'inventario.ver','articulos.ver','catalogos.ver','dashboard.ver');
 
 -- Bodega
@@ -91,15 +98,17 @@ WHERE r.nombre = 'Bodega'
     'inventario.ver','lotes.ver','entrada.registrar','ajuste.registrar',
     'articulos.ver','articulos.crear','articulos.editar',
     'catalogos.ver','catalogos.gestionar',
-    'reporte.ver','dashboard.ver');
+    'reporte.ver','dashboard.ver',
+    'baja.registrar','cuentas.ver','reposicion.registrar','solvencia.emitir');
 
--- Estudiante (solo lectura)
+-- Estudiante (consulta + crea solicitudes que avala su profesor)
 INSERT INTO rol_permiso (rol_id, permiso_id)
 SELECT r.id, p.id
 FROM roles r JOIN permisos p
 WHERE r.nombre = 'Estudiante'
   AND p.codigo IN (
-    'inventario.ver','articulos.ver','catalogos.ver','dashboard.ver');
+    'solicitud.crear','solicitud.ver',
+    'inventario.ver','articulos.ver','catalogos.ver','dashboard.ver','cuenta.propia');
 
 -- -----------------------------------------------------------------------------
 -- Catálogos base
@@ -130,8 +139,8 @@ INSERT INTO ubicaciones (nombre, descripcion, condiciones) VALUES
 -- backend (.NET: BCrypt.Net.BCrypt.HashPassword("TuClave")). El valor de abajo
 -- es un PLACEHOLDER inválido para forzar el cambio antes de producción.
 -- -----------------------------------------------------------------------------
-INSERT INTO usuarios (nombre_completo, usuario, password_hash, email, rol_id)
-SELECT 'Administrador del Sistema', 'admin',
+INSERT INTO usuarios (nombres, apellidos, usuario, password_hash, email, rol_id)
+SELECT 'ADMINISTRADOR', 'DEL SISTEMA', 'admin',
        '$2a$11$REEMPLAZAR_ESTE_HASH_POR_UNO_BCRYPT_REAL_GENERADO_EN_BACKEND',
        'admin@labquim.local', r.id
 FROM roles r WHERE r.nombre = 'Administrador';

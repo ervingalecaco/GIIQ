@@ -2,7 +2,9 @@ import { api } from './client'
 import type { Permiso, Rol, UsuarioAdmin } from '../types'
 
 export interface CrearUsuarioPayload {
-  nombreCompleto: string
+  nombres: string
+  apellidos: string
+  codigo?: string | null
   usuario: string
   password: string
   email?: string | null
@@ -10,13 +12,19 @@ export interface CrearUsuarioPayload {
 }
 
 export interface EditarUsuarioPayload {
-  nombreCompleto: string
+  nombres: string
+  apellidos: string
+  codigo?: string | null
   email?: string | null
   rolId: number
 }
 
 export const usuariosApi = {
   list: () => api.get<UsuarioAdmin[]>('/api/usuarios').then((r) => r.data),
+  /** ¿Están libres el usuario y/o el código? excluirId: el propio usuario al editar. */
+  disponibilidad: (params: { usuario?: string; codigo?: string; excluirId?: number }) =>
+    api.get<{ usuarioDisponible: boolean; codigoDisponible: boolean }>('/api/usuarios/disponibilidad', { params })
+      .then((r) => r.data),
   crear: (payload: CrearUsuarioPayload) =>
     api.post<{ usuarioId: number }>('/api/usuarios', payload).then((r) => r.data),
   editar: (id: number, payload: EditarUsuarioPayload) =>

@@ -1,7 +1,7 @@
 # Diagrama Entidad-Relación — LabQuim
 
 Modelo relacional del sistema de inventario de reactivos y materiales de
-laboratorio de química (18 tablas, MySQL 8). Corresponde a `01_schema.sql`.
+laboratorio de química (21 tablas, MySQL 8). Corresponde a `01_schema.sql`.
 
 ```mermaid
 erDiagram
@@ -24,6 +24,10 @@ erDiagram
     }
     usuarios {
         int id PK
+        string nombres "MAYUSCULAS"
+        string apellidos "MAYUSCULAS"
+        string nombre_completo "calculado"
+        string codigo UK "estudiante o profesor"
         string usuario UK
         string password_hash
         string email
@@ -56,11 +60,28 @@ erDiagram
         int id PK
         string nombre UK
     }
+    clases {
+        int id PK
+        int anio "1 a 5"
+        string nombre "UK con anio"
+        bool activo
+    }
+    clase_profesor {
+        int clase_id PK,FK
+        int profesor_id PK,FK
+    }
+    practicas {
+        int id PK
+        int clase_id FK
+        string nombre
+        int laboratorio_id FK
+        bool activo
+    }
 
     %% ================ ARTICULOS E INVENTARIO ================
     articulos {
         int id PK
-        enum tipo "REACTIVO|MATERIAL"
+        enum tipo "REACTIVO|CRISTALERIA"
         string codigo UK
         string nombre
         int categoria_id FK
@@ -75,6 +96,10 @@ erDiagram
         string clasificacion_peligro
         enum estado_fisico
         string concentracion
+        int nfpa_salud "rombo azul 0-4"
+        int nfpa_inflamabilidad "rombo rojo 0-4"
+        int nfpa_reactividad "rombo amarillo 0-4"
+        set nfpa_especial "rombo blanco"
     }
     lotes {
         int id PK
@@ -90,7 +115,10 @@ erDiagram
     %% ================ SOLICITUDES (FLUJO) ================
     solicitudes {
         int id PK
+        enum tipo "REACTIVO|CRISTALERIA"
         int profesor_id FK
+        int estudiante_id FK
+        int practica_id FK
         int supervisor_id FK
         int bodega_id FK
         int laboratorio_id FK
@@ -152,10 +180,16 @@ erDiagram
     proveedores     ||--o{ lotes              : "provee"
     ubicaciones     ||--o{ lotes              : "almacena"
 
-    usuarios        ||--o{ solicitudes        : "profesor crea"
+    usuarios        ||--o{ solicitudes        : "profesor responsable"
+    usuarios        |o--o{ solicitudes        : "estudiante crea"
     usuarios        ||--o{ solicitudes        : "supervisor aprueba"
     usuarios        ||--o{ solicitudes        : "bodega prepara"
     laboratorios    ||--o{ solicitudes        : "destino"
+    clases          ||--o{ clase_profesor     : "impartida por"
+    usuarios        ||--o{ clase_profesor     : "imparte"
+    clases          ||--o{ practicas          : "tiene"
+    laboratorios    ||--o{ practicas          : "se realiza en"
+    practicas       |o--o{ solicitudes        : "para la práctica"
     solicitudes     ||--o{ solicitud_detalle  : "contiene"
     articulos       ||--o{ solicitud_detalle  : "pedido de"
     unidades_medida ||--o{ solicitud_detalle  : "unidad"

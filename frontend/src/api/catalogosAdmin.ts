@@ -14,17 +14,25 @@ export const catAdminApi = {
     api.post(`${base}/${entidad}/${id}/estado`, { activo }).then((r) => r.data),
 }
 
+/** Catálogo del que salen las opciones de un campo select/multi. */
+export type FuenteOpciones = 'laboratorios' | 'clases' | 'profesores' | 'anios'
+
 export interface CampoCat {
   name: string
   label: string
   required?: boolean
-  type?: 'text' | 'email'
+  /** select: un id de `fuente`; multi: varios ids (checkboxes) de `fuente`. */
+  type?: 'text' | 'email' | 'select' | 'multi'
+  fuente?: FuenteOpciones
+  /** Para multi: columna de la fila que trae los ids separados por coma (ej. "2,7"). */
+  desde?: string
 }
 
 export interface EntidadCat {
   key: string
   label: string
-  columnas: { name: string; label: string }[]
+  /** fmt 'anio': muestra el número de año como texto ("Primer año"). */
+  columnas: { name: string; label: string; fmt?: 'anio' }[]
   campos: CampoCat[]
 }
 
@@ -73,6 +81,34 @@ export const ENTIDADES: EntidadCat[] = [
     columnas: [{ name: 'nombre', label: 'Nombre' }, { name: 'descripcion', label: 'Descripción' }],
     campos: [
       { name: 'nombre', label: 'Nombre', required: true },
+      { name: 'descripcion', label: 'Descripción' },
+    ],
+  },
+  {
+    key: 'clases', label: 'Clases',
+    columnas: [
+      { name: 'anio', label: 'Año', fmt: 'anio' },
+      { name: 'nombre', label: 'Clase' }, { name: 'profesores', label: 'Profesores' },
+      { name: 'practicas', label: 'Prácticas' },
+    ],
+    campos: [
+      { name: 'anio', label: 'Año', required: true, type: 'select', fuente: 'anios' },
+      { name: 'nombre', label: 'Nombre de la clase', required: true },
+      { name: 'descripcion', label: 'Descripción' },
+      { name: 'profesorIds', label: 'Profesores que la imparten', required: true, type: 'multi', fuente: 'profesores', desde: 'profesorIds' },
+    ],
+  },
+  {
+    key: 'practicas', label: 'Prácticas',
+    columnas: [
+      { name: 'claseAnio', label: 'Año', fmt: 'anio' },
+      { name: 'clase', label: 'Clase' }, { name: 'nombre', label: 'Práctica' },
+      { name: 'laboratorio', label: 'Laboratorio' },
+    ],
+    campos: [
+      { name: 'claseId', label: 'Clase', required: true, type: 'select', fuente: 'clases' },
+      { name: 'nombre', label: 'Nombre de la práctica', required: true },
+      { name: 'laboratorioId', label: 'Laboratorio', required: true, type: 'select', fuente: 'laboratorios' },
       { name: 'descripcion', label: 'Descripción' },
     ],
   },

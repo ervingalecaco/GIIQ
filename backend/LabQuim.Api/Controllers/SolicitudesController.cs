@@ -15,12 +15,29 @@ public sealed class SolicitudesController : ControllerBase
     private readonly SolicitudRepository _repo;
     public SolicitudesController(SolicitudRepository repo) => _repo = repo;
 
-    /// <summary>Profesor crea una solicitud de préstamo.</summary>
+    /// <summary>
+    /// Crea una solicitud de préstamo. Si la crea un profesor, él es el responsable.
+    /// Si la crea un estudiante, indica su profesor responsable, que debe avalarla
+    /// antes de que llegue al Supervisor.
+    /// </summary>
     [HttpPost]
     [Authorize(Policy = "solicitud.crear")]
     public async Task<ActionResult<CrearSolicitudResult>> Crear(CrearSolicitudRequest req, CancellationToken ct)
     {
-        // El profesor es el usuario autenticado.
+        int profesorId;
+        int? estudianteId = null;
+        if (User.IsInRole("Estudiante"))
+        {
+            if (req.ProfesorId is not int elegido)
+                return Problem(detail: "Elige el profesor responsable de la solicitud.", statusCode: 400);
+            profesorId = elegido;
+            estudianteId = User.GetUserId();
+        }
+        else
+        {
+            profesorId = User.GetUserId();
+        }
+
         var detalle = req.Lineas.Select(l => new
         {
             articulo_id = l.ArticuloId,
@@ -30,18 +47,21 @@ public sealed class SolicitudesController : ControllerBase
         var detalleJson = JsonSerializer.Serialize(detalle);
 
         var result = await _repo.CrearAsync(
-            User.GetUserId(), req.LaboratorioId, req.FechaRequerida, req.Observaciones, detalleJson, ct);
+            profesorId, estudianteId, req.Tipo, req.PracticaId, req.FechaRequerida, req.Observaciones, detalleJson, ct);
         return CreatedAtAction(nameof(GetById), new { id = result.SolicitudId }, result);
     }
 
     [HttpGet]
     [Authorize(Policy = "solicitud.ver")]
     public async Task<ActionResult<IReadOnlyList<SolicitudHeader>>> List(
-        [FromQuery] string? estado, CancellationToken ct)
+        [FromQuery] string? tipo, [FromQuery] string? estado,
+        [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
     {
-        // El profesor solo ve las suyas; el resto de roles con permiso ven todas.
+        // El profesor ve las suyas y las de sus estudiantes; el estudiante solo las que creó;
+        // el resto de roles con permiso ven todas.
         int? profesorId = User.IsInRole("Profesor") ? User.GetUserId() : null;
-        return Ok(await _repo.ListAsync(estado, profesorId, ct));
+        int? estudianteId = User.IsInRole("Estudiante") ? User.GetUserId() : null;
+        return Ok(await _repo.ListAsync(tipo, estado, profesorId, estudianteId, desde, hasta, ct));
     }
 
     [HttpGet("{id:int}")]
@@ -52,7 +72,27 @@ public sealed class SolicitudesController : ControllerBase
         if (dto is null) return NotFound();
         if (User.IsInRole("Profesor") && dto.Cabecera.ProfesorId != User.GetUserId())
             return Forbid();
+        if (User.IsInRole("Estudiante") && dto.Cabecera.EstudianteId != User.GetUserId())
+            return Forbid();
         return Ok(dto);
+    }
+
+    /// <summary>El profesor responsable avala la solicitud de su estudiante (pasa al Supervisor).</summary>
+    [HttpPost("{id:int}/avalar")]
+    [Authorize(Policy = "solicitud.avalar")]
+    public async Task<IActionResult> Avalar(int id, CancellationToken ct)
+    {
+        await _repo.AvalarAsync(id, User.GetUserId(), ct);
+        return NoContent();
+    }
+
+    /// <summary>El profesor responsable rechaza la solicitud de su estudiante.</summary>
+    [HttpPost("{id:int}/rechazar-profesor")]
+    [Authorize(Policy = "solicitud.avalar")]
+    public async Task<IActionResult> RechazarProfesor(int id, RechazarRequest req, CancellationToken ct)
+    {
+        await _repo.RechazarProfesorAsync(id, User.GetUserId(), req.Motivo, ct);
+        return NoContent();
     }
 
     [HttpPost("{id:int}/aprobar")]
@@ -88,9 +128,10 @@ public sealed class SolicitudesController : ControllerBase
 
     [HttpPost("{id:int}/devolver")]
     [Authorize(Policy = "solicitud.devolver")]
-    public async Task<IActionResult> Devolver(int id, CancellationToken ct)
+    public async Task<IActionResult> Devolver(int id, [FromBody] DevolverRequest? req, CancellationToken ct)
     {
-        await _repo.DevolverAsync(id, User.GetUserId(), ct);
+        // Sin cuerpo = todo volvió completo (como antes de las bajas).
+        await _repo.DevolverAsync(id, User.GetUserId(), req?.Quebradas ?? [], ct);
         return NoContent();
     }
 }

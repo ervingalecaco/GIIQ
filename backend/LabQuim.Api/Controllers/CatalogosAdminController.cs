@@ -95,4 +95,36 @@ public sealed class CatalogosAdminController : ControllerBase
     [HttpPost("laboratorios/{id:int}/estado"), Authorize(Policy = "catalogos.gestionar")]
     public async Task<IActionResult> EstadoLaboratorio(int id, CatalogoEstadoRequest r, CancellationToken ct)
     { await _repo.EstadoLaboratorioAsync(Actor, id, r.Activo, ct); return NoContent(); }
+
+    // ===================== CLASES =====================
+    [HttpGet("clases"), Authorize(Policy = "catalogos.ver")]
+    public async Task<IActionResult> Clases(CancellationToken ct) => Ok(await _repo.ClasesAsync(ct));
+
+    [HttpPost("clases"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> CrearClase(ClaseRequest r, CancellationToken ct)
+        => Ok(new GuardarResult { Id = await _repo.GuardarClaseAsync(Actor, 0, r, ct) });
+
+    [HttpPut("clases/{id:int}"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> EditarClase(int id, ClaseRequest r, CancellationToken ct)
+    { await _repo.GuardarClaseAsync(Actor, id, r, ct); return NoContent(); }
+
+    [HttpPost("clases/{id:int}/estado"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> EstadoClase(int id, CatalogoEstadoRequest r, CancellationToken ct)
+    { await _repo.EstadoClaseAsync(Actor, id, r.Activo, ct); return NoContent(); }
+
+    // ===================== PRÁCTICAS =====================
+    [HttpGet("practicas"), Authorize(Policy = "catalogos.ver")]
+    public async Task<IActionResult> Practicas(CancellationToken ct) => Ok(await _repo.PracticasAsync(ct));
+
+    [HttpPost("practicas"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> CrearPractica(PracticaRequest r, CancellationToken ct)
+        => Ok(new GuardarResult { Id = await _repo.GuardarPracticaAsync(Actor, 0, r, ct) });
+
+    [HttpPut("practicas/{id:int}"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> EditarPractica(int id, PracticaRequest r, CancellationToken ct)
+    { await _repo.GuardarPracticaAsync(Actor, id, r, ct); return NoContent(); }
+
+    [HttpPost("practicas/{id:int}/estado"), Authorize(Policy = "catalogos.gestionar")]
+    public async Task<IActionResult> EstadoPractica(int id, CatalogoEstadoRequest r, CancellationToken ct)
+    { await _repo.EstadoPracticaAsync(Actor, id, r.Activo, ct); return NoContent(); }
 }

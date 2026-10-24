@@ -82,6 +82,51 @@ public sealed class LaboratorioRequest
     public string? Descripcion { get; set; }
 }
 
+// ---- Clases ----
+public sealed class ClaseDto
+{
+    public int Id { get; set; }
+    /// <summary>Año de la carrera (1 a 5).</summary>
+    public int Anio { get; set; }
+    public string Nombre { get; set; } = "";
+    public string? Descripcion { get; set; }
+    /// <summary>Nombres de los profesores, separados por coma (para mostrar).</summary>
+    public string? Profesores { get; set; }
+    /// <summary>Ids de los profesores, separados por coma (para editar).</summary>
+    public string? ProfesorIds { get; set; }
+    public int Practicas { get; set; }
+    public bool Activo { get; set; }
+}
+public sealed class ClaseRequest
+{
+    [Range(1, 5, ErrorMessage = "El año debe estar entre primero y quinto.")] public int Anio { get; set; }
+    [Required, MaxLength(120)] public string Nombre { get; set; } = "";
+    public string? Descripcion { get; set; }
+    [Required, MinLength(1, ErrorMessage = "Asigna al menos un profesor a la clase.")]
+    public List<int> ProfesorIds { get; set; } = new();
+}
+
+// ---- Prácticas ----
+public sealed class PracticaDto
+{
+    public int Id { get; set; }
+    public int ClaseId { get; set; }
+    public string? Clase { get; set; }
+    public int ClaseAnio { get; set; }
+    public string Nombre { get; set; } = "";
+    public int LaboratorioId { get; set; }
+    public string? Laboratorio { get; set; }
+    public string? Descripcion { get; set; }
+    public bool Activo { get; set; }
+}
+public sealed class PracticaRequest
+{
+    [Required] public int ClaseId { get; set; }
+    [Required, MaxLength(150)] public string Nombre { get; set; } = "";
+    [Required] public int LaboratorioId { get; set; }
+    public string? Descripcion { get; set; }
+}
+
 public sealed class GuardarResult
 {
     public int Id { get; set; }

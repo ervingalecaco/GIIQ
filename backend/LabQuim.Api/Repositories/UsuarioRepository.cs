@@ -43,11 +43,11 @@ public sealed class UsuarioRepository
     {
         await using var con = await _factory.CreateOpenConnectionAsync(ct);
         const string sql = @"
-            SELECT u.id, u.nombre_completo, u.usuario, u.email,
+            SELECT u.id, u.nombres, u.apellidos, u.nombre_completo, u.codigo, u.usuario, u.email,
                    u.rol_id, r.nombre AS rol, u.activo
             FROM usuarios u
             JOIN roles r ON r.id = u.rol_id
-            ORDER BY u.nombre_completo";
+            ORDER BY u.apellidos, u.nombres";
         var rows = await con.QueryAsync<UsuarioListDto>(new CommandDefinition(sql, cancellationToken: ct));
         return rows.AsList();
     }
@@ -56,7 +56,7 @@ public sealed class UsuarioRepository
     {
         await using var con = await _factory.CreateOpenConnectionAsync(ct);
         const string sql = @"
-            SELECT u.id, u.nombre_completo, u.usuario, u.email,
+            SELECT u.id, u.nombres, u.apellidos, u.nombre_completo, u.codigo, u.usuario, u.email,
                    u.rol_id, r.nombre AS rol, u.activo
             FROM usuarios u
             JOIN roles r ON r.id = u.rol_id
@@ -65,14 +65,33 @@ public sealed class UsuarioRepository
             new CommandDefinition(sql, new { id }, cancellationToken: ct));
     }
 
+    /// <summary>¿Están libres el usuario y el código? (excluyendo al propio usuario al editar).</summary>
+    public async Task<DisponibilidadDto> DisponibilidadAsync(
+        string? usuario, string? codigo, int? excluirId, CancellationToken ct = default)
+    {
+        await using var con = await _factory.CreateOpenConnectionAsync(ct);
+        const string sql = @"
+            SELECT
+              NOT EXISTS (SELECT 1 FROM usuarios WHERE @usuario IS NOT NULL AND usuario = @usuario
+                                                   AND id <> COALESCE(@excluirId, 0)) AS usuario_disponible,
+              NOT EXISTS (SELECT 1 FROM usuarios WHERE @codigo IS NOT NULL AND codigo = UPPER(@codigo)
+                                                   AND id <> COALESCE(@excluirId, 0)) AS codigo_disponible";
+        return await con.QueryFirstAsync<DisponibilidadDto>(new CommandDefinition(sql,
+            new { usuario = Vacio(usuario), codigo = Vacio(codigo), excluirId }, cancellationToken: ct));
+
+        static string? Vacio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    }
+
     public async Task<CrearUsuarioResult> CrearAsync(
         int actorId, CrearUsuarioRequest req, string passwordHash, CancellationToken ct = default)
     {
         await using var con = await _factory.CreateOpenConnectionAsync(ct);
         var p = new DynamicParameters();
         p.Add("p_actor_id", actorId);
-        p.Add("p_nombre_completo", req.NombreCompleto);
-        p.Add("p_usuario", req.Usuario);
+        p.Add("p_nombres", req.Nombres);
+        p.Add("p_apellidos", req.Apellidos);
+        p.Add("p_codigo", req.Codigo);
+        p.Add("p_usuario", req.Usuario.Trim());
         p.Add("p_password_hash", passwordHash);
         p.Add("p_email", req.Email);
         p.Add("p_rol_id", req.RolId);
@@ -88,7 +107,9 @@ public sealed class UsuarioRepository
         var p = new DynamicParameters();
         p.Add("p_actor_id", actorId);
         p.Add("p_usuario_id", usuarioId);
-        p.Add("p_nombre_completo", req.NombreCompleto);
+        p.Add("p_nombres", req.Nombres);
+        p.Add("p_apellidos", req.Apellidos);
+        p.Add("p_codigo", req.Codigo);
         p.Add("p_email", req.Email);
         p.Add("p_rol_id", req.RolId);
         await con.ExecuteAsync(new CommandDefinition("sp_usuario_editar", p,

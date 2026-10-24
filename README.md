@@ -33,13 +33,21 @@ con exportación a Excel, dashboard con gráficos y respaldo/restauración de la
 Examen de Grado/
 ├─ README.md                 ← este archivo
 ├─ database/                 ← scripts SQL (esquema, datos, procedimientos)
-│  ├─ 01_schema.sql          ← las 18 tablas
+│  ├─ 01_schema.sql          ← las 21 tablas
 │  ├─ 02_seeds.sql           ← roles, permisos, catálogos, usuario admin
 │  ├─ 03_procedures.sql      ← SP del flujo de solicitudes e inventario
 │  ├─ 05_procedures_articulos.sql
 │  ├─ 06_procedures_usuarios.sql
 │  ├─ 07_procedures_catalogos.sql
 │  ├─ 04_smoke_test.sql      ← datos de DEMO + prueba (opcional)
+│  ├─ 08_migracion_cristaleria.sql ← solo para bases viejas (MATERIAL → CRISTALERIA)
+│  ├─ 09_migracion_solicitudes_estudiantes.sql ← solo para bases viejas (estudiantes crean solicitudes)
+│  ├─ 10_migracion_clases_practicas.sql ← solo para bases viejas (clases, profesores y prácticas)
+│  ├─ 11_migracion_usuarios_nombres_codigo.sql ← solo para bases viejas (nombres/apellidos y código)
+│  ├─ 12_migracion_solicitudes_por_tipo.sql ← solo para bases viejas (solicitudes de reactivos / cristalería)
+│  ├─ 13_migracion_rombo_nfpa.sql ← solo para bases viejas (rombo de seguridad NFPA 704)
+│  ├─ 14_migracion_imagenes_cristaleria.sql ← solo para bases viejas (foto de referencia de la cristalería)
+│  ├─ 15_migracion_bajas_cuentas.sql ← solo para bases viejas (bajas de cristalería y cuenta del estudiante)
 │  └─ ER_diagrama.md         ← diagrama entidad-relación (Mermaid)
 ├─ backend/LabQuim.Api/      ← API en .NET 10
 └─ frontend/                 ← app React (Vite)
@@ -133,6 +141,44 @@ y el usuario administrador.
   ```
 - Para empezar **vacío** (producción), **no** ejecutes `04_smoke_test.sql`.
 
+> 🔁 **Base creada antes del cambio a «Cristalería»:** si tu base todavía tiene
+> artículos con tipo `MATERIAL`, conviértela (sin perder datos) con:
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 08_migracion_cristaleria.sql; source 03_procedures.sql; source 05_procedures_articulos.sql;"
+> ```
+>
+> 🔁 **Base creada antes de que los estudiantes pudieran crear solicitudes:**
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 09_migracion_solicitudes_estudiantes.sql; source 03_procedures.sql;"
+> ```
+> Luego cada usuario debe cerrar sesión y volver a entrar para recibir los permisos nuevos.
+>
+> 🔁 **Base creada antes de clases y prácticas:**
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 10_migracion_clases_practicas.sql; source 03_procedures.sql; source 07_procedures_catalogos.sql;"
+> ```
+> Después registra en **Catálogos → Clases** qué profesores imparten cada clase, y en
+> **Catálogos → Prácticas** las prácticas de cada clase. Sin eso no se pueden crear solicitudes.
+>
+> 🔁 **Base creada antes de separar nombres y apellidos:**
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 11_migracion_usuarios_nombres_codigo.sql; source 06_procedures_usuarios.sql;"
+> ```
+> Divide el nombre completo (primera mitad de las palabras = nombres). Revisa en
+> **Usuarios** los nombres compuestos y asigna el código a profesores y estudiantes.
+>
+> 🔁 **Base creada antes de separar solicitudes de reactivos y de cristalería:**
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 12_migracion_solicitudes_por_tipo.sql; source 03_procedures.sql;"
+> ```
+> Las solicitudes que incluían cristalería quedan como de cristalería; el resto, de reactivos.
+>
+> 🔁 **Base creada antes del rombo de seguridad NFPA 704:**
+> ```powershell
+> & $mysql --default-character-set=utf8mb4 -u root -p -e "source 13_migracion_rombo_nfpa.sql; source 05_procedures_articulos.sql;"
+> ```
+> Los reactivos existentes quedan «Sin rombo»: complétalo al editarlos (es obligatorio).
+
 ---
 
 ## Paso 4 — Configurar la conexión
@@ -185,6 +231,40 @@ npm run dev
 
 ---
 
+## Paso 6b — App Android (APK)
+
+La misma app web se empaqueta como APK con **Capacitor** (carpeta `frontend/android/`).
+Requisitos: **JDK 21** y el **SDK de Android** (viene con Android Studio; variable `ANDROID_HOME`).
+
+1. **API accesible desde el celular.** El celular no puede usar `localhost`: la API
+   debe escuchar en la red y la APK debe apuntar a la IP de esta PC.
+   - Arranca la API con el perfil de red local:
+     ```bash
+     cd backend/LabQuim.Api
+     dotnet run --launch-profile red-local
+     ```
+   - Permite el puerto 5099 en el firewall de Windows (una sola vez, en PowerShell **como administrador**):
+     ```powershell
+     New-NetFirewallRule -DisplayName "BioQ API 5099" -Direction Inbound -Protocol TCP -LocalPort 5099 -Action Allow -Profile Private
+     ```
+   - La IP va en `frontend/.env.movil` (`VITE_API_URL=http://192.168.1.239:5099`).
+     Si la IP de la PC cambia, edítala y vuelve a generar la APK. Para ver la IP: `ipconfig`.
+2. **Generar la APK** (de prueba, sin firmar):
+   ```bash
+   cd frontend
+   npm run apk
+   ```
+   Queda en `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+3. **Instalarla:** copia el archivo al celular y ábrelo (Android pedirá permitir
+   «instalar apps de fuentes desconocidas»). El celular debe estar en la **misma red
+   Wi-Fi** que la PC, con la API corriendo.
+
+> El ícono y la pantalla de inicio salen del logo (`frontend/assets-app/`). Si cambias
+> el logo, regenera con:
+> `npx @capacitor/assets generate --android --assetPath assets-app --iconBackgroundColor "#ffffff" --splashBackgroundColor "#ffffff"`
+
+---
+
 ## 7. Usuarios y contraseñas
 
 En **desarrollo**, al arrancar el backend por primera vez se asigna la clave
@@ -196,6 +276,7 @@ En **desarrollo**, al arrancar el backend por primera vez se asigna la clave
 | `super` | Supervisor | `Clave123` |
 | `profe` | Profesor | `Clave123` |
 | `bode`  | Bodega | `Clave123` |
+| `ana`   | Estudiante | `Clave123` |
 
 > ⚠️ Son credenciales de **desarrollo**. En un entorno real hay que asignar
 > contraseñas propias (se puede desde el módulo **Usuarios** de la app).

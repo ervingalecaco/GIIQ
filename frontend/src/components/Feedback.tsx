@@ -20,6 +20,12 @@ export function ErrorAlert({ error, children }: { error?: unknown; children?: Re
   )
 }
 
+export function TipoBadge({ tipo }: { tipo?: string | null }) {
+  return tipo === 'REACTIVO'
+    ? <Badge color="blue" className="w-fit">Reactivo</Badge>
+    : <Badge color="cyan" className="w-fit">Cristalería</Badge>
+}
+
 export function ActivoBadge({ activo }: { activo: boolean }) {
   return activo
     ? <Badge color="success" className="w-fit">Activo</Badge>
@@ -29,10 +35,10 @@ export function ActivoBadge({ activo }: { activo: boolean }) {
 /** Encabezado de página: título + acciones a la derecha. */
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="flex items-end justify-between gap-3 flex-wrap">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        <h1 className="text-[26px] leading-tight font-semibold text-gray-900">{title}</h1>
+        {subtitle && <p className="text-[15px] text-gray-500 mt-1.5">{subtitle}</p>}
       </div>
       {children && <div className="flex items-center gap-3 flex-wrap">{children}</div>}
     </div>
