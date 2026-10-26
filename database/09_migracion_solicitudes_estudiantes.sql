@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: los estudiantes también crean solicitudes
+-- GIIQ — Migración: los estudiantes también crean solicitudes
 -- Archivo: 09_migracion_solicitudes_estudiantes.sql
 --
 -- Flujo nuevo para solicitudes de estudiante:

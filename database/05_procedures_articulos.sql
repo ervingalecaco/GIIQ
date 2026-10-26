@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Stored Procedures de Artículos (CRUD)
+-- GIIQ — Stored Procedures de Artículos (CRUD)
 -- Archivo: 05_procedures_articulos.sql
 -- Ejecutar DESPUÉS de 01_schema.sql
 -- =============================================================================

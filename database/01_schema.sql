@@ -1,6 +1,6 @@
 -- =============================================================================
--- LabQuim — Sistema de Control y Gestión de Inventario de Reactivos y
--- Materiales de Laboratorio de Química
+-- GIIQ — Gestión Integral del Inventario de Química
+-- (reactivos y cristalería del laboratorio)
 -- Archivo: 01_schema.sql  (esquema / DDL)
 -- Motor: MySQL 8  |  Charset: utf8mb4  |  Engine: InnoDB
 -- =============================================================================

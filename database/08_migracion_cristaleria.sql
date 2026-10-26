@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: el tipo de artículo MATERIAL pasa a llamarse CRISTALERIA
+-- GIIQ — Migración: el tipo de artículo MATERIAL pasa a llamarse CRISTALERIA
 -- Archivo: 08_migracion_cristaleria.sql
 --
 -- Solo para bases creadas ANTES de este cambio. Una base nueva creada con

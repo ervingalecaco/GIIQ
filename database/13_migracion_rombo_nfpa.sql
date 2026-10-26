@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: rombo de seguridad NFPA 704 en los reactivos
+-- GIIQ — Migración: rombo de seguridad NFPA 704 en los reactivos
 -- Archivo: 13_migracion_rombo_nfpa.sql
 --
 -- Agrega a la ficha del reactivo los 4 cuadrantes del rombo:

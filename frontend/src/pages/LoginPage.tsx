@@ -1,25 +1,27 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Label, Spinner, TextInput } from 'flowbite-react'
-import { HiOutlineEye, HiOutlineEyeOff, HiOutlineLockClosed, HiOutlineUser } from 'react-icons/hi'
+import { HiBeaker, HiOutlineEye, HiOutlineEyeOff, HiOutlineLockClosed, HiOutlineUser } from 'react-icons/hi'
 import { useAuth } from '../auth/AuthContext'
 import { apiError } from '../api/client'
 import { ErrorAlert } from '../components/Feedback'
 import { useLogo } from '../logo'
+import { SISTEMA } from '../sistema'
 
 /** Logo grande del panel izquierdo; si aún no hay archivo en src/assets, uno provisional. */
 function LogoGrande() {
   const logo = useLogo()
   if (logo) {
-    return <img src={logo} alt="BioQ — Reactivos y Cristalería" className="w-full max-w-md object-contain" />
+    return <img src={logo} alt={SISTEMA.nombre} className="w-full max-w-md object-contain" />
   }
   return (
     <div className="flex items-center gap-4">
-      <span className="inline-flex h-20 w-20 items-center justify-center rounded-2xl brand-gradient
-                       text-3xl font-bold text-white shadow-lg shadow-primary-600/30">Lq</span>
+      <span className="inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl brand-gradient">
+        <HiBeaker className="h-10 w-10 text-white" aria-hidden />
+      </span>
       <div>
-        <div className="text-4xl font-extrabold tracking-tight brand-text-gradient">LabQuim</div>
-        <div className="text-sm text-gray-500">Inventario de laboratorio de química</div>
+        <div className="text-4xl font-bold tracking-wide brand-text-gradient">{SISTEMA.nombre}</div>
+        <div className="text-sm text-gray-500">{SISTEMA.nombreCompleto}</div>
       </div>
     </div>
   )

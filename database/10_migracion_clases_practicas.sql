@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: clases, profesores por clase y prácticas
+-- GIIQ — Migración: clases, profesores por clase y prácticas
 -- Archivo: 10_migracion_clases_practicas.sql
 --
 -- Al crear una solicitud ahora se elige: profesor -> clase -> práctica.

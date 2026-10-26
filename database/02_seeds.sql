@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Datos iniciales (seeds)
+-- GIIQ — Datos iniciales (seeds)
 -- Archivo: 02_seeds.sql
 -- Ejecutar DESPUÉS de 01_schema.sql
 -- =============================================================================

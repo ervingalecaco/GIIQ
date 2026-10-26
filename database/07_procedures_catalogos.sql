@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Stored Procedures de Catálogos (CRUD)
+-- GIIQ — Stored Procedures de Catálogos (CRUD)
 -- Archivo: 07_procedures_catalogos.sql
 -- Ejecutar DESPUÉS de 01_schema.sql
 -- Patrón: sp_<tabla>_guardar (id=0 inserta, si no actualiza) + sp_<tabla>_estado.

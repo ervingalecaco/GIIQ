@@ -1,4 +1,8 @@
-# LabQuim — Sistema de Inventario de Laboratorio de Química
+# GIIQ — Gestión Integral del Inventario de Química
+
+> El sistema se llamaba **LabQuim**. Ese nombre se conserva solo en lo técnico, para no
+> romper instalaciones existentes: la base de datos `labquim`, el proyecto
+> `backend/LabQuim.Api` y los archivos `labquim_*.sql`.
 
 Guía de **instalación y puesta en marcha** del proyecto en una computadora nueva.
 Pensada para el caso de **copiar toda esta carpeta** y hacerlo funcionar desde cero.
@@ -245,7 +249,7 @@ Requisitos: **JDK 21** y el **SDK de Android** (viene con Android Studio; variab
      ```
    - Permite el puerto 5099 en el firewall de Windows (una sola vez, en PowerShell **como administrador**):
      ```powershell
-     New-NetFirewallRule -DisplayName "BioQ API 5099" -Direction Inbound -Protocol TCP -LocalPort 5099 -Action Allow -Profile Private
+     New-NetFirewallRule -DisplayName "GIIQ API 5099" -Direction Inbound -Protocol TCP -LocalPort 5099 -Action Allow -Profile Private
      ```
    - La IP va en `frontend/.env.movil` (`VITE_API_URL=http://192.168.1.239:5099`).
      Si la IP de la PC cambia, edítala y vuelve a generar la APK. Para ver la IP: `ipconfig`.

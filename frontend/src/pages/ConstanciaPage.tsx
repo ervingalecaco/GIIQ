@@ -6,6 +6,7 @@ import { cuentasApi } from '../api/bajas'
 import { Cargando, ErrorAlert } from '../components/Feedback'
 import { INSTITUCION } from '../institucion'
 import { useLogo } from '../logo'
+import { SISTEMA } from '../sistema'
 
 /**
  * Constancia de solvencia lista para imprimir (o guardar como PDF desde el navegador).
@@ -75,7 +76,7 @@ export function ConstanciaPage() {
           </div>
 
           <footer className="mt-14 border-t border-gray-200 pt-3 font-mono text-[10px] leading-4 text-gray-500">
-            Emitida por el sistema LabQuim · folio {data.folio} ·{' '}
+            Emitida por el sistema {SISTEMA.nombre} ({SISTEMA.nombreCompleto}) · folio {data.folio} ·{' '}
             {new Date(data.fecha).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}.
             Válida únicamente con firma y sello del laboratorio.
           </footer>

@@ -3,8 +3,8 @@
 @source "../.flowbite-react/class-list.json";
 
 /* Flowbite usa la paleta "primary" en botones, inputs, tabs, sidebar…
-   La definimos con los colores del logo BioQ (tomados del archivo):
-     #DDEAFD vidrio del matraz · #3474A2 mano (azul acero) · #0A335F texto "BioQ" (azul marino)
+   Paleta de marca de GIIQ (heredada del logo anterior):
+     #DDEAFD vidrio del matraz · #3474A2 azul acero · #0A335F azul marino
    y el celeste del círculo (#85DDEB) como acento. */
 :root {
   color-scheme: light;
@@ -17,7 +17,7 @@
   --primary-600: #3474a2;  /* mano */
   --primary-700: #295e86;
   --primary-800: #1b476d;
-  --primary-900: #0a335f;  /* texto "BioQ" */
+  --primary-900: #0a335f;  /* azul marino */
   --primary-950: #06213f;
   --brand-celeste: #85ddeb; /* círculo del logo */
   --marino: #0f2a44;        /* fondo del menú lateral */
@@ -73,7 +73,7 @@ h1, h2, h3 {
 
 /* AG Grid (TablaDatos): celdas con etiqueta centradas verticalmente.
    Doble clase para ganar a la hoja de AG Grid, que fija display: block en .ag-cell. */
-.ag-labquim .ag-cell.celda-centrada {
+.ag-giiq .ag-cell.celda-centrada {
   display: flex;
   align-items: center;
 }

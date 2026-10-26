@@ -1,12 +1,12 @@
 """
-Genera «BioQ — Manual de instalación» en PDF.
+Genera «GIIQ — Manual de instalación» en PDF.
 
 Uso (desde la raíz del proyecto):
     pip install reportlab
     python docs/manual/generar_manual.py
 
-Salida: docs/manual/BioQ_Manual_Instalacion.pdf
-Usa las fuentes de Windows (Calibri y Consolas) y el logo de frontend/assets-app.
+Salida: docs/manual/GIIQ_Manual_Instalacion.pdf
+Usa las fuentes de Windows (Calibri y Consolas).
 """
 from datetime import date
 from pathlib import Path
@@ -19,12 +19,10 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from reportlab.platypus import (CondPageBreak, Image, KeepTogether, PageBreak, Paragraph,
+from reportlab.platypus import (CondPageBreak, KeepTogether, PageBreak, Paragraph,
                                 Preformatted, SimpleDocTemplate, Spacer, Table, TableStyle)
 
-RAIZ = Path(__file__).resolve().parents[2]
-SALIDA = Path(__file__).resolve().parent / "BioQ_Manual_Instalacion.pdf"
-LOGO = RAIZ / "frontend" / "assets-app" / "icon-only.png"
+SALIDA = Path(__file__).resolve().parent / "GIIQ_Manual_Instalacion.pdf"
 
 # ---------------------------------------------------------------- Datos de portada
 ESTUDIANTE = "[Nombre del estudiante] — [Carné]"
@@ -35,8 +33,8 @@ MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto
 HOY = date.today()
 FECHA = f"{HOY.day} de {MESES[HOY.month - 1]} de {HOY.year}"
 
-# ---------------------------------------------------------------- Colores (logo BioQ)
-MARINO = colors.HexColor("#0A335F")    # texto "BioQ"
+# ---------------------------------------------------------------- Colores (marca GIIQ)
+MARINO = colors.HexColor("#0A335F")    # azul marino de la marca
 ACERO = colors.HexColor("#3474A2")     # mano
 PALIDO = colors.HexColor("#DDEAFD")    # vidrio del matraz
 CELESTE = colors.HexColor("#85DDEB")   # círculo
@@ -196,12 +194,9 @@ class LienzoNumerado(canvas.Canvas):
     def _decorar(self, total: int):
         ancho, alto = letter
         self.saveState()
-        if LOGO.exists():
-            self.drawImage(str(LOGO), 2 * cm, alto - 1.55 * cm, width=0.75 * cm, height=0.75 * cm,
-                           mask="auto")
         self.setFont("Calibri-Bold", 10)
         self.setFillColor(MARINO)
-        self.drawString(2.95 * cm, alto - 1.25 * cm, "BioQ")
+        self.drawString(2 * cm, alto - 1.25 * cm, "GIIQ")
         self.setFont("Calibri", 9)
         self.setFillColor(GRIS_SUAVE)
         self.drawRightString(ancho - 2 * cm, alto - 1.25 * cm, "Manual de instalación")
@@ -219,12 +214,12 @@ class LienzoNumerado(canvas.Canvas):
 def portada():
     h = []
     h.append(Spacer(1, 1.2 * cm))
-    if LOGO.exists():
-        h.append(Image(str(LOGO), width=8 * cm, height=8 * cm))
+    h.append(Spacer(1, 2.5 * cm))
+    h.append(Paragraph("GIIQ", ParagraphStyle("marca", fontName="Calibri-Bold", fontSize=64, leading=72,
+                                              textColor=MARINO, alignment=TA_CENTER)))
     h.append(Spacer(1, 0.3 * cm))
-    # El logo ya trae el nombre «BioQ»: debajo solo va la descripción del sistema.
-    h.append(Paragraph("S I S T E M A &nbsp; D E &nbsp; I N V E N T A R I O &nbsp; D E &nbsp; R E A C T I V O S"
-                       " &nbsp; Y &nbsp; C R I S T A L E R Í A",
+    h.append(Paragraph("G E S T I Ó N &nbsp; I N T E G R A L &nbsp; D E L &nbsp; I N V E N T A R I O"
+                       " &nbsp; D E &nbsp; Q U Í M I C A",
                        ParagraphStyle("sub", fontName="Calibri", fontSize=8.5, leading=12,
                                       textColor=GRIS_SUAVE, alignment=TA_CENTER)))
     h.append(Spacer(1, 0.5 * cm))
@@ -240,8 +235,8 @@ def portada():
                                       textColor=GRIS_SUAVE, alignment=TA_CENTER)))
     h.append(Spacer(1, 0.7 * cm))
     h.append(tabla(["Dato", "Detalle"], [
-        ["Sistema", "BioQ — control y gestión del inventario de reactivos y cristalería del laboratorio de "
-                    "química (nombre técnico del código: <b>LabQuim</b>)"],
+        ["Sistema", "GIIQ — Gestión Integral del Inventario de Química: reactivos y cristalería del laboratorio "
+                    "(el código conserva el nombre técnico <b>LabQuim</b>)"],
         ["Estudiante", ESTUDIANTE],
         ["Carrera", CARRERA],
         ["Documento", "Manual de instalación · Examen de Grado"],
@@ -255,7 +250,7 @@ def portada():
 def contenido():
     h = [H1("", "Contenido")]
     h.append(tabla(["Capítulo", "Qué resuelve"], [
-        ["1. El sistema en una página", "Qué es BioQ, qué módulos trae y las formas de usarlo"],
+        ["1. El sistema en una página", "Qué es GIIQ, qué módulos trae y las formas de usarlo"],
         ["2. Arquitectura y tecnologías", "Cómo se reparten base de datos, API, interfaz web y app Android"],
         ["3. Requisitos previos", "Programas y versiones que hay que tener antes de empezar"],
         ["4. Obtener el código", "Copiar la carpeta del proyecto (ZIP o Git) y limpiarla"],
@@ -280,7 +275,7 @@ def contenido():
 
 def cap1():
     h = [H1("1", "El sistema en una página")]
-    h.append(P("BioQ controla el inventario del laboratorio de química: los <b>reactivos</b> (se consumen, "
+    h.append(P("GIIQ controla el inventario del laboratorio de química: los <b>reactivos</b> (se consumen, "
                "caducan y se controlan por lote, despachando primero el que vence antes — FEFO) y la "
                "<b>cristalería</b> (material de vidrio que se presta en las prácticas y se devuelve). Las "
                "existencias no se editan a mano: todo cambio entra como un movimiento (entrada, salida, "
@@ -319,7 +314,7 @@ def cap1():
 
 def cap2():
     h = [H1("2", "Arquitectura y tecnologías")]
-    h.append(P("BioQ está separado en tres piezas independientes: la <b>base de datos</b> guarda los datos y "
+    h.append(P("GIIQ está separado en tres piezas independientes: la <b>base de datos</b> guarda los datos y "
                "contiene toda la lógica del negocio en procedimientos almacenados; la <b>API</b> solo valida, "
                "autentica y llama a esos procedimientos; y la <b>interfaz</b> solo consume la API. Por eso pueden "
                "vivir en máquinas distintas."))
@@ -333,7 +328,7 @@ def cap2():
                                                          "permisos; la interfaz lo envía en cada petición"],
         ["Excel", "ClosedXML", "Genera los reportes exportables"],
         ["Frontend", "React 19 + Vite 6 + TypeScript", "Toda la interfaz en una sola página (SPA)"],
-        ["Estilos", "Tailwind CSS 4 + Flowbite React", "Componentes y colores tomados del logo BioQ"],
+        ["Estilos", "Tailwind CSS 4 + Flowbite React", "Componentes y paleta de la marca GIIQ"],
         ["Datos y gráficos", "TanStack Query · axios · Recharts", "Caché de consultas, llamadas a la API y "
                                                                  "gráficos del dashboard"],
         ["App Android", "Capacitor 8", "Empaqueta la interfaz como APK"],
@@ -411,14 +406,14 @@ def cap4():
     h.append(H2("Método A — copiar la carpeta o descomprimir el ZIP"))
     h += pasos([
         "Copiar la carpeta del proyecto (o descomprimir el ZIP) en una ruta sin caracteres raros, por ejemplo "
-        + c("C:\\Proyectos\\BioQ\\") + ".",
+        + c("C:\\Proyectos\\GIIQ\\") + ".",
         "Verificar que dentro estén " + c("database\\") + ", " + c("backend\\LabQuim.Api\\") + " y " +
         c("frontend\\") + " directamente (no dentro de una subcarpeta extra).",
     ])
     h.append(H2("Método B — con Git"))
     h.append(codigo("""
-git clone URL_DEL_REPOSITORIO BioQ
-cd BioQ
+git clone URL_DEL_REPOSITORIO GIIQ
+cd GIIQ
 """))
     h.append(H2("Limpiar lo que viene de otra computadora"))
     h.append(P("Si la carpeta se copió de otra máquina, conviene borrar estas carpetas generadas; se vuelven a "
@@ -450,7 +445,7 @@ def cap5():
                "contraseñas y procedimientos. Crea la base " + c("labquim") + " desde cero (la borra si ya "
                "existía):"))
     h.append(codigo(f"""
-cd C:\\Proyectos\\BioQ\\database
+cd C:\\Proyectos\\GIIQ\\database
 {mysql}
 & $mysql --default-character-set=utf8mb4 -u root -p -e "source labquim_completo.sql;"
 """))
@@ -537,7 +532,7 @@ def cap6():
     ])
     h.append(H2("6.3  Levantar la API"))
     h.append(codigo(r"""
-cd C:\Proyectos\BioQ\backend\LabQuim.Api
+cd C:\Proyectos\GIIQ\backend\LabQuim.Api
 dotnet run
 
 # Para que un teléfono de la misma red Wi-Fi pueda alcanzarla (capítulo 9):
@@ -560,7 +555,7 @@ def cap7():
                "sigue con la API corriendo)."))
     h.append(H2("7.1  Instalar las dependencias"))
     h.append(codigo(r"""
-cd C:\Proyectos\BioQ\frontend
+cd C:\Proyectos\GIIQ\frontend
 npm install
 """))
     h.append(P("Descarga React, Flowbite, Capacitor y el resto en " + c("node_modules\\") +
@@ -638,7 +633,7 @@ def cap9():
     h = [H1("9", "Aplicación Android (APK)")]
     h.append(P("La APK es la misma interfaz empaquetada con <b>Capacitor</b>. El proyecto de Android ya está "
                "generado en " + c("frontend\\android\\") + "; la aplicación se identifica como " +
-               c("com.bioq.inventario") + " y se llama <b>BioQ</b> en el teléfono."))
+               c("com.bioq.inventario") + " y se llama <b>GIIQ</b> en el teléfono."))
     h.append(H2("9.1  Hacer que el teléfono alcance la API"))
     h.append(P("El " + c("localhost") + " del teléfono es el propio teléfono, así que la APK necesita la "
                "<b>dirección IP de la computadora</b> en la red Wi-Fi."))
@@ -653,7 +648,7 @@ def cap9():
         "administrador</b>):",
     ], desde=3)
     h.append(codigo("""
-New-NetFirewallRule -DisplayName "BioQ API 5099" -Direction Inbound -Protocol TCP -LocalPort 5099 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "GIIQ API 5099" -Direction Inbound -Protocol TCP -LocalPort 5099 -Action Allow -Profile Private
 """))
     h += pasos([
         "Levantar la API escuchando en la red: " + c("dotnet run --launch-profile red-local") + ".",
@@ -664,7 +659,7 @@ New-NetFirewallRule -DisplayName "BioQ API 5099" -Direction Inbound -Protocol TC
                    "Red e Internet → Wi-Fi → (la red) → Tipo de perfil de red."))
     h.append(H2("9.2  Generar la APK de prueba (debug)"))
     h.append(codigo(r"""
-cd C:\Proyectos\BioQ\frontend
+cd C:\Proyectos\GIIQ\frontend
 npm run apk
 """))
     h.append(P("El comando compila la interfaz con la dirección de " + c(".env.movil") + ", la copia al proyecto "
@@ -679,7 +674,7 @@ npm run apk
     h += pasos([
         "Copiar " + c("app-debug.apk") + " al teléfono (cable, correo o nube) y abrirlo.",
         "Android pedirá permitir «instalar apps de fuentes desconocidas»: aceptar.",
-        "Con el teléfono en la <b>misma red Wi-Fi</b> que la computadora y la API corriendo, abrir BioQ "
+        "Con el teléfono en la <b>misma red Wi-Fi</b> que la computadora y la API corriendo, abrir GIIQ "
         "e iniciar sesión.",
     ])
     h.append(H2("9.4  Ícono y pantalla de inicio"))
@@ -693,11 +688,11 @@ npx @capacitor/assets generate --android --assetPath assets-app --iconBackground
                "distribuirla oficialmente se firma con un certificado propio:"))
     h.append(codigo(r"""
 # 1. Crear el certificado (keytool viene con el JDK)
-keytool -genkeypair -v -keystore bioq.jks -keyalg RSA -keysize 2048 -validity 10000 -alias bioq
+keytool -genkeypair -v -keystore giiq.jks -keyalg RSA -keysize 2048 -validity 10000 -alias giiq
 
 # 2. Abrir el proyecto en Android Studio
 npx cap open android
-# Menú Build > Generate Signed App Bundle / APK > APK > elegir bioq.jks > release
+# Menú Build > Generate Signed App Bundle / APK > APK > elegir giiq.jks > release
 """))
     h.append(aviso("IMPORTANTE", "Si se pierde el certificado, no hay actualizaciones",
                    "Android exige que todas las versiones de una aplicación estén firmadas con el mismo "
@@ -733,25 +728,25 @@ def cap10():
                    "opción A, que trae las contraseñas actuales."))
     h.append(H2("10.2  Publicar la API"))
     h.append(codigo(r"""
-cd C:\Proyectos\BioQ\backend\LabQuim.Api
-dotnet publish -c Release -o C:\publicar\bioq-api
+cd C:\Proyectos\GIIQ\backend\LabQuim.Api
+dotnet publish -c Release -o C:\publicar\giiq-api
 """))
     h.append(P("En la carpeta publicada se crea " + c("appsettings.Production.json") + " con los valores reales "
                "(tampoco se sube al repositorio):"))
     h.append(codigo("""
 {
   "ConnectionStrings": {
-    "Default": "Server=localhost;Port=3306;Database=labquim;User Id=bioq;Password=UNA_CONTRASEÑA_LARGA;AllowUserVariables=true;"
+    "Default": "Server=localhost;Port=3306;Database=labquim;User Id=giiq;Password=UNA_CONTRASEÑA_LARGA;AllowUserVariables=true;"
   },
   "Jwt": { "Key": "otra-clave-larga-y-secreta-solo-para-produccion-32+" },
-  "Cors": { "Origins": [ "https://bioq.midominio.com" ] },
+  "Cors": { "Origins": [ "https://giiq.midominio.com" ] },
   "Backup": { "MySqlBinDir": "C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin" }
 }
 """, "appsettings.Production.json"))
     h.append(P("Y se ejecuta en modo producción (o se aloja en IIS con el «ASP.NET Core Hosting Bundle» de .NET 10):"))
     h.append(codigo(r"""
 $env:ASPNETCORE_ENVIRONMENT = "Production"
-cd C:\publicar\bioq-api
+cd C:\publicar\giiq-api
 dotnet LabQuim.Api.dll --urls http://0.0.0.0:5099
 """))
     h.append(aviso("OJO", "Cors:Origins es imprescindible en producción",
@@ -760,7 +755,7 @@ dotnet LabQuim.Api.dll --urls http://0.0.0.0:5099
                    "sin un error claro. En producción tampoco se publica Swagger."))
     h.append(H2("10.3  Publicar el frontend"))
     h.append(codigo(r"""
-cd C:\Proyectos\BioQ\frontend
+cd C:\Proyectos\GIIQ\frontend
 Set-Content .env.production "VITE_API_URL=https://api.midominio.com"
 npm run build
 # Se publica el contenido de frontend\dist en el servidor web
@@ -914,7 +909,7 @@ Examen de Grado/
 def main():
     doc = SimpleDocTemplate(str(SALIDA), pagesize=letter, leftMargin=2 * cm, rightMargin=2 * cm,
                             topMargin=2.4 * cm, bottomMargin=2 * cm,
-                            title="BioQ — Manual de instalación", author="BioQ",
+                            title="GIIQ — Manual de instalación", author="GIIQ",
                             subject="Manual de instalación · Examen de Grado")
     historia = []
     for parte in (portada, contenido, cap1, cap2, cap3, cap4, cap5, cap6, cap7, cap8, cap9, cap10, cap11, cap12):

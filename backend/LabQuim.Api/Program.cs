@@ -70,7 +70,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "LabQuim API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "GIIQ API", Version = "v1" });
     var scheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -93,7 +93,7 @@ app.UseMiddleware<BusinessExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "LabQuim API v1"));
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "GIIQ API v1"));
 
     // Asigna clave usable a los usuarios con hash placeholder (solo local).
     await DevSeeder.SeedAsync(app.Services, app.Logger);

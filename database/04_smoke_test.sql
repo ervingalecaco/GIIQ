@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Smoke test del flujo completo
+-- GIIQ — Smoke test del flujo completo
 -- Archivo: 04_smoke_test.sql
 -- Ejecutar sobre una BD recién cargada (01 -> 02 -> 03 -> 04).
 -- Prueba: FEFO en preparación, reingreso de material en devolución, y la

@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: solicitudes de reactivos y solicitudes de cristalería
+-- GIIQ — Migración: solicitudes de reactivos y solicitudes de cristalería
 -- Archivo: 12_migracion_solicitudes_por_tipo.sql
 --
 --  * Nueva columna solicitudes.tipo (REACTIVO | CRISTALERIA). Una solicitud ya

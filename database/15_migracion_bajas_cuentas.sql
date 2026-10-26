@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: bajas de cristalería y cuenta del estudiante
+-- GIIQ — Migración: bajas de cristalería y cuenta del estudiante
 -- Archivo: 15_migracion_bajas_cuentas.sql
 --
 -- Cuando un estudiante quiebra (o pierde) cristalería en una práctica, bodega

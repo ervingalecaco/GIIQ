@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Stored Procedures (lógica de negocio)
+-- GIIQ — Stored Procedures (lógica de negocio)
 -- Archivo: 03_procedures.sql
 -- Ejecutar DESPUÉS de 01_schema.sql (y 02_seeds.sql)
 -- =============================================================================

@@ -1,4 +1,4 @@
-# Diagrama Entidad-Relación — LabQuim
+# Diagrama Entidad-Relación — GIIQ
 
 Modelo relacional del sistema de inventario de reactivos y materiales de
 laboratorio de química (21 tablas, MySQL 8). Corresponde a `01_schema.sql`.

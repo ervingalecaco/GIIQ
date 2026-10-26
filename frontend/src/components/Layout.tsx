@@ -11,6 +11,7 @@ import {
 import { TbTestPipe } from 'react-icons/tb'
 import { useAuth } from '../auth/AuthContext'
 import { useLogo } from '../logo'
+import { SISTEMA } from '../sistema'
 
 type Icono = FC<ComponentProps<'svg'>>
 /** `rol`: solo para ese rol (p. ej. "Mi cuenta", que el Administrador no tiene aunque tenga todos los permisos). */
@@ -67,7 +68,7 @@ function Logo({ alto = 'h-12' }: { alto?: string }) {
     <Link to="/" className="flex flex-1 items-center gap-3" aria-label="Inicio">
       {logo ? (
         <span className="flex flex-1 justify-center rounded-md bg-white px-3 py-2">
-          <img src={logo} alt="BioQ — Reactivos y Cristalería" className={`${alto} max-w-full w-auto object-contain`} />
+          <img src={logo} alt={SISTEMA.nombre} className={`${alto} max-w-full w-auto object-contain`} />
         </span>
       ) : (
         <>
@@ -75,8 +76,8 @@ function Logo({ alto = 'h-12' }: { alto?: string }) {
             <HiBeaker className="h-5 w-5 text-white" />
           </span>
           <span>
-            <span className="block text-[17px] font-bold text-white">LabQuim</span>
-            <span className="block text-xs text-slate-400">Reactivos y Cristalería</span>
+            <span className="block text-[17px] font-bold tracking-wide text-white">{SISTEMA.nombre}</span>
+            <span className="block text-[11px] leading-tight text-slate-400">{SISTEMA.nombreCompleto}</span>
           </span>
         </>
       )}
@@ -185,7 +186,7 @@ export function Layout() {
           <div className="text-sm text-gray-500">
             {actual
               ? <>{actual.seccion} · <span className="font-medium text-gray-900">{actual.label}</span></>
-              : 'LabQuim'}
+              : SISTEMA.nombre}
           </div>
           <div className="ms-auto font-mono text-xs text-gray-500 first-letter:uppercase">{hoy()}</div>
         </div>

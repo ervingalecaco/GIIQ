@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: nombres y apellidos por separado + código de usuario
+-- GIIQ — Migración: nombres y apellidos por separado + código de usuario
 -- Archivo: 11_migracion_usuarios_nombres_codigo.sql
 --
 --  * nombre_completo se divide en nombres y apellidos (en MAYÚSCULAS) y pasa a

@@ -5,10 +5,10 @@ import { AG_GRID_LOCALE_ES } from '@ag-grid-community/locale'
 ModuleRegistry.registerModules([AllCommunityModule])
 
 /**
- * Tema de AG Grid con la línea de LabQuim: Plex Sans para el texto, encabezados en Plex Mono,
+ * Tema de AG Grid con la línea de GIIQ: Plex Sans para el texto, encabezados en Plex Mono,
  * azul acero del logo como acento, bordes finos y sin sombras.
  */
-const temaLabQuim = themeQuartz.withParams({
+const temaGiiq = themeQuartz.withParams({
   accentColor: '#3474a2',
   foregroundColor: '#0f1b2a',
   backgroundColor: '#ffffff',
@@ -34,9 +34,9 @@ const temaLabQuim = themeQuartz.withParams({
  */
 export function TablaDatos<T>(props: AgGridReactProps<T>) {
   return (
-    <div className="ag-labquim">
+    <div className="ag-giiq">
       <AgGridReact<T>
-        theme={temaLabQuim}
+        theme={temaGiiq}
         localeText={AG_GRID_LOCALE_ES}
         domLayout="autoHeight"
         pagination

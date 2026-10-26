@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Migración: imagen de referencia de la cristalería
+-- GIIQ — Migración: imagen de referencia de la cristalería
 -- Archivo: 14_migracion_imagenes_cristaleria.sql
 --
 -- Cada artículo de cristalería puede tener UNA foto de referencia, para que

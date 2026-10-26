@@ -1,5 +1,5 @@
 -- =============================================================================
--- LabQuim — Stored Procedures de Usuarios, Roles y Permisos
+-- GIIQ — Stored Procedures de Usuarios, Roles y Permisos
 -- Archivo: 06_procedures_usuarios.sql
 -- Ejecutar DESPUÉS de 01_schema.sql
 -- Nota: el hash BCrypt se calcula en el backend (.NET) y se pasa ya listo.
