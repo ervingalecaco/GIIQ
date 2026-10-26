@@ -1,11 +1,11 @@
 """
 Genera «GIIQ — Manual de instalación» en PDF.
 
-Uso (desde la raíz del proyecto):
+Uso (desde la carpeta GIIQ):
     pip install reportlab
     python docs/manual/generar_manual.py
 
-Salida: docs/manual/GIIQ_Manual_Instalacion.pdf
+Salida: GIIQ/docs/manual/GIIQ_Manual_Instalacion.pdf
 Usa las fuentes de Windows (Calibri y Consolas).
 """
 from datetime import date
@@ -27,7 +27,7 @@ SALIDA = Path(__file__).resolve().parent / "GIIQ_Manual_Instalacion.pdf"
 # ---------------------------------------------------------------- Datos de portada
 ESTUDIANTE = "[Nombre del estudiante] — [Carné]"
 CARRERA = "[Carrera]"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
          "septiembre", "octubre", "noviembre", "diciembre"]
 HOY = date.today()
@@ -257,7 +257,7 @@ def contenido():
         ["5. Base de datos", "Crear la base «labquim» con todos los datos o desde los scripts"],
         ["6. Instalación del backend", "API .NET 10: conexión a MySQL, llave JWT y arranque"],
         ["7. Instalación del frontend", "React + Vite: dependencias, dirección de la API y arranque"],
-        ["8. Primer acceso y datos iniciales", "Usuarios de arranque y orden para cargar el laboratorio"],
+        ["8. Primer acceso y datos iniciales", "Usuarios de arranque, datos de la institución y orden de carga"],
         ["9. Aplicación Android (APK)", "API en la red Wi-Fi, generar e instalar la APK"],
         ["10. Despliegue en producción", "Servidor, configuración de producción, HTTPS y comprobación"],
         ["11. Problemas frecuentes", "Síntoma, causa y solución de los fallos ya vistos"],
@@ -279,7 +279,8 @@ def cap1():
                "caducan y se controlan por lote, despachando primero el que vence antes — FEFO) y la "
                "<b>cristalería</b> (material de vidrio que se presta en las prácticas y se devuelve). Las "
                "existencias no se editan a mano: todo cambio entra como un movimiento (entrada, salida, "
-               "ajuste o devolución) registrado en un procedimiento almacenado y en la bitácora de auditoría."))
+               "ajuste, devolución, baja o reposición) registrado en un procedimiento almacenado y en la "
+               "bitácora de auditoría."))
     h.append(H2("Qué trae instalado"))
     h.append(tabla(["Módulo", "Para qué sirve"], [
         ["Seguridad", "Inicio de sesión con contraseña cifrada (BCrypt), usuarios con nombres, apellidos y "
@@ -288,14 +289,23 @@ def cap1():
                       "(con sus profesores) y prácticas"],
         ["Reactivos", "Catálogo con ficha química y <b>rombo de seguridad NFPA 704</b> obligatorio; "
                       "existencias por lote y filtros por clasificación de riesgo"],
-        ["Cristalería", "Catálogo del material de vidrio y su existencia"],
+        ["Cristalería", "Catálogo del material de vidrio con su existencia y una <b>foto de referencia</b> "
+                        "por pieza"],
         ["Inventario", "Existencias actuales, ingreso de stock por lote y alertas de stock mínimo"],
         ["Solicitudes de reactivos", "Profesor o estudiante pide → profesor avala (si la pidió un "
                                      "estudiante) → supervisor aprueba → bodega prepara y entrega (se cierra)"],
         ["Solicitudes de cristalería", "El mismo flujo, pero queda «entregada» hasta que bodega registra "
-                                       "la devolución"],
-        ["Reportes", "Existencias, próximos a vencer, consumo por laboratorio y kardex, exportables a Excel"],
-        ["Dashboard", "Indicadores y gráficos del estado del inventario"],
+                                       "la devolución, indicando las piezas quebradas y quién las quebró"],
+        ["Bajas y cuentas de estudiantes", "Bodega da de baja la cristalería quebrada, extraviada o deteriorada; "
+                                           "la pieza se carga a la cuenta del estudiante responsable hasta que la "
+                                           "<b>reponga físicamente</b>. Sin deuda se imprime la <b>constancia de "
+                                           "solvencia</b> para culminar estudios"],
+        ["Notificaciones", "Campana en la barra superior: avisa a cada usuario lo que le toca o le afecta "
+                           "(solicitud nueva, avalada, aprobada, rechazada con su motivo, lista, entregada, "
+                           "devuelta, piezas cargadas o repuestas)"],
+        ["Reportes", "Existencias, próximos a vencer, consumo por laboratorio y kardex: tablas con orden, "
+                     "filtros y búsqueda, detalle lateral al tocar una fila y exportación a Excel"],
+        ["Dashboard", "Indicadores, alertas que requieren acción y gráficos del estado del inventario"],
         ["Respaldos", "Copia y restauración de la base de datos desde la propia interfaz"],
     ], [4.3, 12.7]))
     h.append(H2("Dos maneras de usarlo"))
@@ -319,18 +329,21 @@ def cap2():
                "autentica y llama a esos procedimientos; y la <b>interfaz</b> solo consume la API. Por eso pueden "
                "vivir en máquinas distintas."))
     h.append(tabla(["Pieza", "Tecnología", "Qué hace"], [
-        ["Base de datos", "MySQL 8 (utf8mb4)", "21 tablas y 34 procedimientos almacenados: inventario por "
-                                               "lote, flujo de solicitudes, auditoría"],
+        ["Base de datos", "MySQL 8 (utf8mb4)", "27 tablas y 44 procedimientos almacenados: inventario por "
+                                               "lote, flujo de solicitudes, bajas y cuentas, notificaciones, "
+                                               "auditoría"],
         ["Backend (API)", ".NET 10 · ASP.NET Core Web API", "Rutas REST " + c("/api/*") + ", permisos por "
                                                            "política, documentación Swagger"],
         ["Acceso a datos", "Dapper + MySqlConnector", "Llama a los procedimientos y a consultas de lectura"],
         ["Autenticación", "JWT (tokens Bearer) + BCrypt", "Al iniciar sesión entrega un token con el rol y los "
                                                          "permisos; la interfaz lo envía en cada petición"],
-        ["Excel", "ClosedXML", "Genera los reportes exportables"],
+        ["Excel", "ClosedXML", "Genera los reportes, bajas y cuentas exportables"],
         ["Frontend", "React 19 + Vite 6 + TypeScript", "Toda la interfaz en una sola página (SPA)"],
         ["Estilos", "Tailwind CSS 4 + Flowbite React", "Componentes y paleta de la marca GIIQ"],
         ["Datos y gráficos", "TanStack Query · axios · Recharts", "Caché de consultas, llamadas a la API y "
                                                                  "gráficos del dashboard"],
+        ["Tablas de reportes", "AG Grid Community 36", "Orden, filtros por columna, búsqueda y paginación "
+                                                       "en los reportes (versión gratuita, sin licencia)"],
         ["App Android", "Capacitor 8", "Empaqueta la interfaz como APK"],
     ], [3.3, 5.2, 8.5]))
     h.append(H2("Cómo se hablan las piezas"))
@@ -356,6 +369,11 @@ def cap2():
         "<b>La lógica vive en la base de datos.</b> Crear una solicitud, preparar por FEFO, devolver "
         "cristalería o validar el rombo NFPA lo hacen procedimientos almacenados, de forma transaccional. "
         "Por eso la base se crea con scripts y no con migraciones de código.",
+        "<b>Las notificaciones también nacen en la base.</b> Cada procedimiento del flujo (crear, avalar, "
+        "aprobar, rechazar, preparar, entregar, devolver, dar de baja, reponer) escribe los avisos en la misma "
+        "transacción; la interfaz consulta la campana cada 30 segundos.",
+        "<b>Las fotos de la cristalería se guardan en la base</b> (columna MEDIUMBLOB, reducidas a 1000 px en el "
+        "navegador antes de subirlas). Así un respaldo de la base lleva también las fotos, sin carpetas aparte.",
         "<b>Permisos dentro del token.</b> Al cambiar los permisos de un rol, el usuario debe cerrar sesión y "
         "volver a entrar para recibirlos.",
         "<b>Zona horaria fija.</b> La API fija " + c("time_zone = '-06:00'") + " (Nicaragua) en cada conexión; "
@@ -401,25 +419,31 @@ npm --version
 
 def cap4():
     h = [H1("4", "Obtener el código")]
-    h.append(P("El proyecto es una sola carpeta (" + c("Examen de Grado") + ") con tres subcarpetas: " +
-               c("database") + ", " + c("backend") + " y " + c("frontend") + "."))
+    h.append(P("Todo lo necesario para instalar y hacer funcionar el sistema está en una sola carpeta, " +
+               c("GIIQ") + ": dentro están " + c("database") + ", " + c("backend") + ", " + c("frontend") +
+               " (con el proyecto Android) y " + c("docs") + " (este manual). Es lo único que hay que llevar "
+               "a la otra computadora."))
     h.append(H2("Método A — copiar la carpeta o descomprimir el ZIP"))
     h += pasos([
-        "Copiar la carpeta del proyecto (o descomprimir el ZIP) en una ruta sin caracteres raros, por ejemplo "
-        + c("C:\\Proyectos\\GIIQ\\") + ".",
+        "Copiar la carpeta " + c("GIIQ") + " (o descomprimir el ZIP) en una ruta sin caracteres raros, por "
+        "ejemplo " + c("C:\\Proyectos\\GIIQ\\") + ".",
         "Verificar que dentro estén " + c("database\\") + ", " + c("backend\\LabQuim.Api\\") + " y " +
         c("frontend\\") + " directamente (no dentro de una subcarpeta extra).",
     ])
     h.append(H2("Método B — con Git"))
-    h.append(codigo("""
-git clone URL_DEL_REPOSITORIO GIIQ
-cd GIIQ
+    h.append(codigo(r"""
+git clone URL_DEL_REPOSITORIO giiq-repositorio
+# La aplicación es la carpeta GIIQ del repositorio; se puede usar ahí mismo o copiarla aparte
+Copy-Item -Recurse giiq-repositorio\GIIQ C:\Proyectos\GIIQ
+cd C:\Proyectos\GIIQ
 """))
+    h.append(P("El repositorio guarda además, fuera de " + c("GIIQ") + ", documentos de análisis del proyecto "
+               "(carpeta " + c("documentacion") + "); no se necesitan para instalar."))
     h.append(H2("Limpiar lo que viene de otra computadora"))
     h.append(P("Si la carpeta se copió de otra máquina, conviene borrar estas carpetas generadas; se vuelven a "
                "crear solas al compilar:"))
     h.append(codigo(r"""
-# Desde la raíz del proyecto
+# Desde la carpeta GIIQ
 Remove-Item -Recurse -Force frontend\node_modules, frontend\dist, `
   backend\LabQuim.Api\bin, backend\LabQuim.Api\obj -ErrorAction SilentlyContinue
 """))
@@ -458,10 +482,11 @@ cd C:\\Proyectos\\GIIQ\\database
 & $mysql --default-character-set=utf8mb4 -u root -p -e "source 01_schema.sql; source 02_seeds.sql; source 03_procedures.sql; source 05_procedures_articulos.sql; source 06_procedures_usuarios.sql; source 07_procedures_catalogos.sql;"
 """))
     h.append(tabla(["Script", "Qué crea"], [
-        ["01_schema.sql", "La base " + c("labquim") + " y sus 21 tablas"],
-        ["02_seeds.sql", "Roles, permisos, catálogos base (unidades, categorías, ubicaciones) y el usuario "
-                         + c("admin")],
-        ["03_procedures.sql", "Inventario y flujo de solicitudes (crear, avalar, aprobar, preparar, entregar, devolver)"],
+        ["01_schema.sql", "La base " + c("labquim") + " y sus 27 tablas"],
+        ["02_seeds.sql", "Roles, permisos (incluidos los de bajas y cuentas), catálogos base (unidades, "
+                         "categorías, ubicaciones) y el usuario " + c("admin")],
+        ["03_procedures.sql", "Inventario y flujo de solicitudes (crear, avalar, aprobar, preparar, entregar, "
+                              "devolver), bajas, reposiciones, constancias de solvencia y notificaciones"],
         ["05_procedures_articulos.sql", "Alta y edición de reactivos y cristalería, con validación del rombo NFPA"],
         ["06_procedures_usuarios.sql", "Usuarios (nombres, apellidos, código único) y permisos por rol"],
         ["07_procedures_catalogos.sql", "Catálogos, clases (con sus profesores) y prácticas"],
@@ -471,15 +496,31 @@ cd C:\\Proyectos\\GIIQ\\database
     h.append(codigo("""
 & $mysql --default-character-set=utf8mb4 -u root -p labquim -e "source 04_smoke_test.sql;"
 """))
-    h.append(aviso("NOTA", "Los scripts 08 a 13 son solo para bases antiguas",
-                   "Los archivos " + c("08_migracion_*.sql") + " a " + c("13_migracion_*.sql") + " actualizan "
+    h.append(aviso("NOTA", "Los scripts 08 a 16 son solo para bases antiguas",
+                   "Los archivos " + c("08_migracion_*.sql") + " a " + c("16_migracion_*.sql") + " actualizan "
                    "una base creada con una versión anterior del sistema sin perder sus datos. En una "
                    "instalación nueva <b>no</b> se ejecutan: los scripts 01 a 07 ya incluyen esos cambios."))
+    h.append(H2("Actualizar una base de una versión anterior"))
+    h.append(P("Si ya hay una base " + c("labquim") + " en uso, se aplican en orden solo las migraciones que le "
+               "falten (cada script indica al inicio qué agrega). Las tres más recientes son:"))
+    h.append(tabla(["Script", "Qué agrega"], [
+        ["14_migracion_imagenes_cristaleria.sql", "Tabla de fotos de referencia de la cristalería"],
+        ["15_migracion_bajas_cuentas.sql", "Bajas, cuentas de estudiantes, reposiciones, constancias de solvencia y "
+                                          "sus permisos; los movimientos BAJA y REPOSICION"],
+        ["16_migracion_notificaciones.sql", "Tabla de notificaciones"],
+    ], [6.6, 10.4]))
+    h.append(codigo("""
+& $mysql --default-character-set=utf8mb4 -u root -p labquim -e "source 14_migracion_imagenes_cristaleria.sql; source 15_migracion_bajas_cuentas.sql; source 16_migracion_notificaciones.sql;"
+& $mysql --default-character-set=utf8mb4 -u root -p -e "source 03_procedures.sql;"
+"""))
+    h.append(P("La segunda línea vuelve a cargar los procedimientos, que en esta versión cambiaron (la devolución "
+               "registra piezas quebradas y todo el flujo genera notificaciones). Antes de migrar conviene sacar "
+               "un respaldo."))
     h.append(H2("5.3  Comprobar"))
     h.append(codigo("""
 & $mysql -u root -p labquim -e "SELECT COUNT(*) AS tablas FROM information_schema.tables WHERE table_schema='labquim';"
 """))
-    h.append(P("Debe responder <b>21</b>."))
+    h.append(P("Debe responder <b>27</b>."))
     h.append(PageBreak())
     return h
 
@@ -588,10 +629,12 @@ def cap8():
                c("Clave123") + ":"))
     h.append(tabla(["Usuario", "Rol", "Qué puede hacer"], [
         ["admin", "Administrador", "Todo: usuarios, roles y permisos, catálogos, inventario, reportes y respaldos"],
-        ["super", "Supervisor", "Aprobar o rechazar solicitudes; ver inventario y reportes"],
+        ["super", "Supervisor", "Aprobar o rechazar solicitudes; ver inventario, reportes y cuentas de estudiantes"],
         ["profe", "Profesor", "Crear solicitudes y avalar las de sus estudiantes"],
-        ["bode", "Bodega", "Preparar, entregar y recibir devoluciones; ingresar stock; editar artículos"],
-        ["ana", "Estudiante", "Crear solicitudes (las avala su profesor) y consultar existencias"],
+        ["bode", "Bodega", "Preparar, entregar y recibir devoluciones; ingresar stock; editar artículos; registrar "
+                           "bajas y reposiciones; emitir constancias de solvencia"],
+        ["ana", "Estudiante", "Crear solicitudes (las avala su profesor), consultar existencias y ver su propia "
+                              "cuenta de cristalería (<b>Mi cuenta</b>)"],
     ], [2.5, 3.2, 11.3]))
     h.append(P("Con la opción B del capítulo 5 solo existe " + c("admin") + " (más " + c("super") + ", " +
                c("profe") + " y " + c("bode") + " si se cargó el script 04); el resto se crea desde " +
@@ -601,7 +644,21 @@ def cap8():
                    "el sistema en el laboratorio hay que asignar contraseñas propias desde <b>Usuarios → Clave</b>, "
                    "o crear cuentas nuevas y desactivar estas. Los usuarios no se borran: se desactivan, para que "
                    "los movimientos sigan apuntando a quien los registró."))
-    h.append(H2("8.2  Orden para cargar el laboratorio"))
+    h.append(H2("8.2  Datos de la institución para la constancia"))
+    h.append(P("La constancia de solvencia se imprime con el nombre de la institución y la ciudad. Vienen como "
+               "marcadores entre corchetes y se completan una sola vez en " + c("frontend\\src\\institucion.ts") +
+               " antes de compilar el frontend:"))
+    h.append(codigo("""
+export const INSTITUCION = {
+  nombre: '[Nombre de la institución]',
+  dependencia: 'Laboratorio de Química',
+  ciudad: '[Ciudad]',
+  cargoFirma: 'Responsable de bodega del laboratorio',
+}
+""", "frontend/src/institucion.ts"))
+    h.append(P("Si se dejan así, la constancia sale con los corchetes. Después de cambiarlo hay que volver a "
+               "generar el frontend (" + c("npm run build") + ") y, si se usa, la APK."))
+    h.append(H2("8.3  Orden para cargar el laboratorio"))
     h.append(P("Varias pantallas dependen de otras, así que conviene cargar los datos en este orden:"))
     h += pasos([
         "<b>Catálogos → Categorías, Unidades, Proveedores, Ubicaciones y Laboratorios.</b>",
@@ -611,19 +668,23 @@ def cap8():
         "<b>Catálogos → Prácticas:</b> cada práctica pertenece a una clase y se realiza en un laboratorio.",
         "<b>Reactivos:</b> cada uno con su ficha y su <b>rombo de seguridad NFPA 704</b> (salud, inflamabilidad "
         "y reactividad de 0 a 4, obligatorios; riesgo específico opcional).",
-        "<b>Cristalería:</b> el material de vidrio.",
+        "<b>Cristalería:</b> el material de vidrio, con una foto de referencia opcional (JPG, PNG o WebP de "
+        "hasta 2 MB; el sistema la reduce antes de guardarla).",
         "<b>Ingresar stock</b> (botón «Ingresar» en cada artículo): crea los lotes, con vencimiento en los reactivos.",
     ])
     h.append(aviso("OJO", "Sin clases y prácticas no se pueden crear solicitudes",
                    "Al pedir material se elige profesor → clase → práctica. Si un profesor no tiene clases "
                    "asignadas, el formulario lo indica y no deja continuar."))
-    h.append(H2("8.3  Comprobar que todo quedó bien"))
+    h.append(H2("8.4  Comprobar que todo quedó bien"))
     h += vinetas([
         "Entrar con " + c("admin") + " y revisar que el menú lateral muestre todos los módulos.",
         "Abrir <b>Reactivos</b> y <b>Cristalería</b>: deben listar los artículos con su existencia.",
-        "Crear una solicitud de prueba y llevarla hasta «Cerrada» con los roles correspondientes.",
+        "Crear una solicitud de prueba y llevarla hasta «Cerrada» con los roles correspondientes. En cada paso, "
+        "la campana del siguiente rol debe mostrar el aviso (tarda hasta 30 segundos).",
+        "En una devolución de cristalería, marcar una pieza quebrada: debe aparecer en <b>Bajas</b> y en la cuenta "
+        "del estudiante; al registrar la reposición, la cuenta queda saldada y se puede imprimir la constancia.",
         "Abrir <b>Respaldos</b> y crear uno: si falla, revisar " + c("Backup:MySqlBinDir") + " (capítulo 6.2).",
-        "Exportar un reporte a Excel desde <b>Reportes</b>.",
+        "Exportar a Excel un reporte, las <b>Bajas</b> y las <b>Cuentas de estudiantes</b>.",
     ])
     h.append(PageBreak())
     return h
@@ -678,8 +739,11 @@ npm run apk
         "e iniciar sesión.",
     ])
     h.append(H2("9.4  Ícono y pantalla de inicio"))
-    h.append(P("Salen del logo y están en " + c("frontend\\assets-app\\") + ". Si se cambia el logo, se "
-               "regeneran con:"))
+    h.append(P("Salen de " + c("icon-only.png") + ", " + c("icon-foreground.png") + ", " +
+               c("icon-background.png") + " y " + c("splash.png") + " en " + c("frontend\\assets-app\\") +
+               ". En esta versión todavía tienen el logo anterior: para usar el de GIIQ se reemplazan esos cuatro "
+               "archivos (conviene una versión del logo <b>solo con el emblema</b>, sin letras, porque el ícono es "
+               "pequeño y redondo) y se regeneran con:"))
     h.append(codigo("""
 npx @capacitor/assets generate --android --assetPath assets-app --iconBackgroundColor "#ffffff" --splashBackgroundColor "#ffffff"
 """))
@@ -700,8 +764,8 @@ npx cap open android
                    "con copia, y no se suben al repositorio."))
     h.append(H2("9.6  Qué no funciona dentro de la APK"))
     h += vinetas([
-        "<b>Exportar a Excel y descargar respaldos</b>: usan la descarga del navegador, que el WebView de "
-        "Android no ejecuta. Esas dos acciones se hacen desde la versión web.",
+        "<b>Exportar a Excel, descargar respaldos e imprimir la constancia de solvencia</b>: usan la descarga "
+        "y la impresión del navegador, que el WebView de Android no ejecuta. Se hacen desde la versión web.",
         "Al cambiar de red Wi-Fi cambia la IP de la computadora: hay que editar " + c(".env.movil") +
         " y volver a generar la APK.",
     ])
@@ -792,6 +856,8 @@ npm run build
         ["La restauración funciona", "Probarla en una copia, nunca por primera vez en producción"],
         ["Las contraseñas de demostración ya no existen", "Usuarios con contraseñas nuevas o desactivados"],
         ["La llave JWT es propia", "Distinta a la de desarrollo"],
+        ["La constancia lleva los datos reales", "Imprimir una de prueba: sin corchetes en el nombre ni la ciudad"],
+        ["Las notificaciones llegan", "Crear una solicitud y ver el aviso en la campana del profesor o supervisor"],
     ], [6.5, 10.5]))
     h.append(PageBreak())
     return h
@@ -816,6 +882,9 @@ def cap11():
          "Agregar la dirección exacta y reiniciar la API"],
         ["Un usuario no ve un módulo tras darle el permiso", "Los permisos viajan dentro del token",
          "Cerrar sesión y volver a entrar"],
+        ["Tras actualizar, la devolución falla con «Incorrect number of arguments»",
+         "Se aplicaron las migraciones pero no los procedimientos nuevos",
+         "Volver a cargar 03_procedures.sql (capítulo 5)"],
     ], [5.0, 5.8, 6.2]))
     h.append(H2("11.2  Frontend y uso"))
     h.append(tabla(["Síntoma", "Causa", "Solución"], [
@@ -830,6 +899,14 @@ def cap11():
          "Completar salud, inflamabilidad y reactividad (0 a 4)"],
         ["No se puede crear un estudiante o profesor", "Falta el código o ya lo tiene otro usuario",
          "Asignar un código único (letras, números y guion)"],
+        ["La foto de la cristalería no se guarda", "El archivo no es JPG, PNG o WebP, o pasa de 2 MB",
+         "Usar una foto en esos formatos; el artículo sí queda guardado"],
+        ["Una notificación no aparece al instante", "La campana consulta cada 30 segundos",
+         "Esperar o recargar la página"],
+        ["No deja emitir la constancia de solvencia", "El estudiante tiene piezas pendientes de reponer",
+         "Registrar la reposición en su cuenta; luego emitirla"],
+        ["La constancia sale con «[Nombre de la institución]»", "No se completó institucion.ts",
+         "Capítulo 8.2 y volver a compilar el frontend"],
     ], [5.0, 5.8, 6.2]))
     h.append(H2("11.3  Aplicación Android"))
     h.append(tabla(["Síntoma", "Causa", "Solución"], [
@@ -841,8 +918,9 @@ def cap11():
          "Definir las variables y volver a ejecutar npm run apk leyendo el final"],
         ["«No se instaló la app»", "Hay instalada una versión firmada con otro certificado",
          "Desinstalar la versión anterior antes de instalar la nueva"],
-        ["Exportar a Excel no hace nada en el teléfono", "El WebView de Android no ejecuta descargas",
-         "Exportar desde la versión web"],
+        ["Exportar a Excel o imprimir no hace nada en el teléfono", "El WebView de Android no ejecuta "
+                                                                     "descargas ni impresión",
+         "Hacerlo desde la versión web"],
         ["La primera compilación tarda mucho", "Gradle descarga sus dependencias", "Esperar; las siguientes son rápidas"],
     ], [5.0, 5.8, 6.2]))
     h.append(PageBreak())
@@ -863,6 +941,7 @@ def cap12():
         ["frontend/.env.development · VITE_API_URL", "http://localhost:5099", "API para la versión web en desarrollo"],
         ["frontend/.env.production · VITE_API_URL", "https://api.midominio.com", "API para la versión publicada"],
         ["frontend/.env.movil · VITE_API_URL", "http://192.168.1.239:5099", "API para la APK"],
+        ["frontend/src/institucion.ts", "nombre, ciudad, cargoFirma", "Datos impresos en la constancia de solvencia"],
     ], [6.2, 4.8, 6.0]))
     h.append(H2("12.2  Comandos útiles"))
     h.append(tabla(["Comando", "Qué hace"], [
@@ -875,16 +954,17 @@ def cap12():
         [c("npm run apk"), "Genera la APK de prueba"],
         [c("npx cap open android"), "Abre el proyecto Android en Android Studio"],
         [c("mysql … -e \"source labquim_completo.sql;\""), "Crea la base completa"],
-        [c("mysqldump … --routines --databases labquim"), "Exporta la base completa (incluye procedimientos)"],
+        [c("mysqldump … --routines --hex-blob --databases labquim"),
+         "Exporta la base completa (procedimientos y fotos incluidos)"],
     ], [7.0, 10.0]))
     h.append(H2("12.3  Estructura del proyecto"))
     h.append(codigo(r"""
-Examen de Grado/
+GIIQ/                            La aplicación completa (lo único que hay que copiar)
 |-- README.md                    Guía rápida de instalación
 |-- database/
 |   |-- 01_schema.sql ... 07_*   Esquema, datos base y procedimientos (instalación nueva)
-|   |-- 08_ ... 13_migracion_*   Actualizan bases de versiones anteriores
-|   |-- labquim_completo.sql     Base completa (estructura + datos + procedimientos)
+|   |-- 08_ ... 16_migracion_*   Actualizan bases de versiones anteriores
+|   |-- labquim_completo.sql     Base completa (estructura + datos + procedimientos + fotos)
 |   \-- ER_diagrama.md           Diagrama entidad-relación (Mermaid)
 |-- backend/LabQuim.Api/         API .NET 10
 |   |-- Controllers/             Un controlador por módulo
@@ -895,10 +975,10 @@ Examen de Grado/
 |   \-- appsettings*.json        Configuración
 |-- frontend/                    Interfaz React + Vite
 |   |-- src/pages/               Una pantalla por módulo
-|   |-- src/components/          Componentes propios (tablas, formularios, rombo NFPA)
+|   |-- src/components/          Componentes propios (tablas, formularios, rombo NFPA, campana)
 |   |-- src/api/                 Llamadas a la API
-|   |-- src/assets/logo.jpeg     Logo de la institución
-|   |-- assets-app/              Ícono y pantalla de inicio de la APK
+|   |-- src/institucion.ts       Datos de la institución para la constancia
+|   |-- assets-app/              Logos de GIIQ, ícono y pantalla de inicio de la APK
 |   |-- android/                 Proyecto Android de Capacitor
 |   \-- capacitor.config.ts      Nombre e identificador de la app
 \-- docs/manual/                 Este manual y su generador

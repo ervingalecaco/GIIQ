@@ -125,7 +125,7 @@ SELECT id, tipo, estado, fecha_entrega FROM solicitudes WHERE id IN (@solR, @sol
 -- 5) Bodega registra la devolución de la cristalería -> reingresa al stock.
 --    Esperado: Material vuelve a 10; reactivo sigue A=0, B=60. Estado CERRADA.
 -- ---------------------------------------------------------------------------
-CALL sp_solicitud_devolver(@solC, @bodega);
+CALL sp_solicitud_devolver(@solC, @bodega, NULL);   -- NULL: se devolvió todo, sin piezas quebradas
 SELECT '=== 5) Devuelta (esperado Material=10, A=0, B=60; estado CERRADA) ===' AS etapa;
 SELECT codigo_lote, cantidad_actual FROM lotes ORDER BY id;
 SELECT id, tipo, estado, fecha_devolucion FROM solicitudes WHERE id IN (@solR, @solC);

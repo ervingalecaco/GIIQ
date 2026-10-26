@@ -4,21 +4,21 @@
     {
       "name": "api",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "backend/LabQuim.Api", "--launch-profile", "http"],
+      "runtimeArgs": ["run", "--project", "GIIQ/backend/LabQuim.Api", "--launch-profile", "http"],
       "port": 5099,
       "url": "http://localhost:5099"
     },
     {
       "name": "api-red",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "backend/LabQuim.Api", "--launch-profile", "red-local"],
+      "runtimeArgs": ["run", "--project", "GIIQ/backend/LabQuim.Api", "--launch-profile", "red-local"],
       "port": 5099,
       "url": "http://localhost:5099"
     },
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": ["--prefix", "GIIQ/frontend", "run", "dev"],
       "port": 5173
     }
   ]
