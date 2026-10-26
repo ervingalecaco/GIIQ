@@ -10,6 +10,7 @@ import { descargarArchivo } from '../api/reportes'
 import { apiError } from '../api/client'
 import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import { Paginador, usePaginacion } from '../components/Paginacion'
+import { useDialogos } from '../components/Dialogos'
 
 function tamano(bytes?: number | null): string {
   if (!bytes) return '—'
@@ -27,21 +28,22 @@ export function RespaldosPage() {
   const { data, isLoading, error } = useQuery({ queryKey: ['respaldos'], queryFn: respaldosApi.list })
   const pag = usePaginacion(data)
 
+  const { avisar } = useDialogos()
   const crear = useMutation({
     mutationFn: respaldosApi.crear,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['respaldos'] }),
-    onError: (e) => alert(apiError(e)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['respaldos'] }); avisar('Respaldo creado.', 'exito') },
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   const restaurar = useMutation({
     mutationFn: (f: File) => respaldosApi.restore(f),
     onSuccess: () => {
-      alert('Base de datos restaurada correctamente.')
+      avisar('Base de datos restaurada correctamente.', 'exito')
       setArchivo(null)
       if (fileRef.current) fileRef.current.value = ''
       qc.invalidateQueries()
     },
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   function ejecutarRestaurar() {

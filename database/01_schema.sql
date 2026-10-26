@@ -17,6 +17,7 @@ USE labquim;
 
 -- Reinicio limpio (para desarrollo). Orden inverso por dependencias.
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS notificaciones;
 DROP TABLE IF EXISTS constancias_solvencia;
 DROP TABLE IF EXISTS reposiciones;
 DROP TABLE IF EXISTS cargos_estudiante;
@@ -471,6 +472,25 @@ CREATE TABLE constancias_solvencia (
   KEY idx_const_estudiante (estudiante_id),
   CONSTRAINT fk_const_estudiante FOREIGN KEY (estudiante_id) REFERENCES usuarios (id),
   CONSTRAINT fk_const_usuario    FOREIGN KEY (emitida_por)   REFERENCES usuarios (id)
+) ENGINE=InnoDB;
+
+-- Notificaciones dentro de la app. Las escriben los procedimientos del flujo
+-- (solicitudes, bajas, reposiciones) dentro de su propia transacción.
+CREATE TABLE notificaciones (
+  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  usuario_id   INT UNSIGNED NOT NULL,              -- destinatario
+  tipo         VARCHAR(30)  NOT NULL,              -- evento: CREADA, APROBADA, CARGO, …
+  titulo       VARCHAR(120) NOT NULL,
+  mensaje      VARCHAR(500) NOT NULL,
+  enlace       VARCHAR(200) NULL,                  -- ruta de la app a la que lleva
+  solicitud_id INT UNSIGNED NULL,
+  leida        TINYINT(1)   NOT NULL DEFAULT 0,
+  creada_en    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  leida_en     DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_notif_usuario (usuario_id, leida, creada_en),
+  CONSTRAINT fk_notif_usuario   FOREIGN KEY (usuario_id)   REFERENCES usuarios (id) ON DELETE CASCADE,
+  CONSTRAINT fk_notif_solicitud FOREIGN KEY (solicitud_id) REFERENCES solicitudes (id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE respaldos (

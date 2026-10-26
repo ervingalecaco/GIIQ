@@ -54,6 +54,8 @@ public sealed class BajaRepository
                    COUNT(CASE WHEN c.estado = 'PENDIENTE' THEN 1 END) AS cargos_pendientes,
                    COALESCE(SUM(CASE WHEN c.estado = 'PENDIENTE' THEN c.cantidad - c.cantidad_repuesta END), 0) AS piezas_pendientes,
                    COUNT(c.id) AS cargos_totales,
+                   COALESCE(SUM(c.cantidad), 0) AS piezas_cargadas,
+                   COALESCE(SUM(c.cantidad_repuesta), 0) AS piezas_repuestas,
                    MAX(c.fecha) AS ultima_baja
             FROM usuarios u
             JOIN roles ro ON ro.id = u.rol_id AND ro.nombre = 'Estudiante'

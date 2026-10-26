@@ -11,6 +11,7 @@ import { UsuarioFormModal } from '../components/UsuarioFormModal'
 import { ActivoBadge, Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import { Paginador, usePaginacion } from '../components/Paginacion'
 import type { UsuarioAdmin } from '../types'
+import { useDialogos } from '../components/Dialogos'
 
 const TODOS = '__todos__'
 
@@ -62,22 +63,28 @@ export function UsuariosPage() {
   const visibles = data?.filter((u) => deRol(u, vista) && deEstado(u, estadoVista))
   const pag = usePaginacion(visibles, [vista, estadoVista])
 
+  const { pedirTexto, avisar } = useDialogos()
   const estado = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => usuariosApi.cambiarEstado(id, activo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   const password = useMutation({
     mutationFn: ({ id, pwd }: { id: number; pwd: string }) => usuariosApi.cambiarPassword(id, pwd),
-    onSuccess: () => alert('Contraseña actualizada.'),
-    onError: (e) => alert(apiError(e)),
+    onSuccess: (_, v) => avisar(`Contraseña de ${data?.find((u) => u.id === v.id)?.usuario ?? 'el usuario'} actualizada.`, 'exito'),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
-  function resetPassword(u: UsuarioAdmin) {
-    const pwd = window.prompt(`Nueva contraseña para ${u.usuario} (mín. 6):`)
-    if (pwd && pwd.length >= 6) password.mutate({ id: u.id, pwd })
-    else if (pwd !== null) alert('La contraseña debe tener al menos 6 caracteres.')
+  async function resetPassword(u: UsuarioAdmin) {
+    const pwd = await pedirTexto({
+      titulo: 'Cambiar contraseña',
+      etiqueta: 'Nueva contraseña',
+      descripcion: <>Para el usuario <strong>{u.usuario}</strong>. Mínimo 6 caracteres; compártela con él por un medio seguro.</>,
+      confirmar: 'Cambiar contraseña',
+      tipo: 'password', minimo: 6, maximo: 100,
+    })
+    if (pwd) password.mutate({ id: u.id, pwd })
   }
 
   return (

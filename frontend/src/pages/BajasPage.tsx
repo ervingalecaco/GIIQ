@@ -9,6 +9,7 @@ import { articulosApi } from '../api/catalogos'
 import { bajasApi, CAUSAS, cuentasApi, textoCausa } from '../api/bajas'
 import { apiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { BotonExcel } from '../components/BotonExcel'
 import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import { describirPeriodo, FiltroPeriodo, PERIODO_INICIAL, rangoDe, type Periodo } from '../components/FiltroPeriodo'
 import { MiniaturaArticulo } from '../components/ImagenArticulo'
@@ -43,6 +44,7 @@ export function BajasPage() {
     <div className="space-y-5">
       <PageHeader title="Bajas de cristalería"
         subtitle="Piezas quebradas, extraviadas o deterioradas que salieron del inventario.">
+        <BotonExcel url={`/api/bajas/excel?${new URLSearchParams(Object.entries(rango).filter(([, v]) => v) as [string, string][])}`} archivo="bajas.xlsx" />
         {hasPerm('baja.registrar') && (
           <Button size="sm" onClick={() => setNueva(true)}><HiPlus className="me-1.5 h-4 w-4" /> Registrar baja</Button>
         )}

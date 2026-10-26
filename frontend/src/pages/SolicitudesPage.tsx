@@ -20,6 +20,7 @@ import {
 import { anioTexto } from '../anios'
 import type { EstadoSolicitud, SolicitudHeader, TipoArticulo } from '../types'
 import { TIPO_SOLICITUD } from '../tiposSolicitud'
+import { useDialogos } from '../components/Dialogos'
 
 /** Estados por los que pasa cada tipo (los reactivos no quedan ENTREGADA: se cierran al entregar). */
 const ESTADOS: Record<TipoArticulo, EstadoSolicitud[]> = {
@@ -36,6 +37,16 @@ interface Accion { label: string; color: string; fn: () => Promise<unknown>; dev
 /** Acciones del flujo disponibles para una solicitud según su estado y los permisos del usuario. */
 function useAcciones() {
   const { user, hasPerm } = useAuth()
+  const { pedirTexto } = useDialogos()
+  // Motivo del rechazo en una ventana propia; null = se canceló y no se hace nada.
+  const pedirMotivo = (s: SolicitudHeader, quienLoVera: string) => pedirTexto({
+    titulo: `Rechazar solicitud #${s.id}`,
+    etiqueta: 'Motivo del rechazo',
+    descripcion: `${quienLoVera} este motivo en la solicitud y en sus notificaciones.`,
+    placeholder: 'Ej. La cantidad solicitada excede lo necesario para la práctica.',
+    confirmar: 'Rechazar solicitud',
+    peligro: true, multilinea: true, minimo: 5, maximo: 255,
+  })
   return (s: SolicitudHeader): Accion[] => {
     const btns: Accion[] = []
     // Visto bueno del profesor responsable a la solicitud de su estudiante.
@@ -44,10 +55,9 @@ function useAcciones() {
       btns.push({ label: 'Avalar', color: 'default', fn: () => solicitudesApi.avalar(s.id) })
       btns.push({
         label: 'Rechazar', color: 'red',
-        fn: () => {
-          const motivo = window.prompt('Motivo del rechazo (lo verá el estudiante):')
-          if (!motivo) return Promise.resolve()
-          return solicitudesApi.rechazarProfesor(s.id, motivo)
+        fn: async () => {
+          const motivo = await pedirMotivo(s, 'El estudiante verá')
+          if (motivo) await solicitudesApi.rechazarProfesor(s.id, motivo)
         },
       })
     }
@@ -55,10 +65,9 @@ function useAcciones() {
       btns.push({ label: 'Aprobar', color: 'default', fn: () => solicitudesApi.aprobar(s.id) })
       btns.push({
         label: 'Rechazar', color: 'red',
-        fn: () => {
-          const motivo = window.prompt('Motivo del rechazo:')
-          if (!motivo) return Promise.resolve()
-          return solicitudesApi.rechazar(s.id, motivo)
+        fn: async () => {
+          const motivo = await pedirMotivo(s, s.estudianteId ? 'El estudiante y su profesor verán' : 'El profesor verá')
+          if (motivo) await solicitudesApi.rechazar(s.id, motivo)
         },
       })
     }
@@ -74,13 +83,14 @@ function useAcciones() {
 
 function useEjecutar(id?: number) {
   const qc = useQueryClient()
+  const { avisar } = useDialogos()
   return useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['solicitudes'] })
       if (id) qc.invalidateQueries({ queryKey: ['solicitud', id] })
     },
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 }
 

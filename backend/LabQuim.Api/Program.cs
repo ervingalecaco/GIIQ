@@ -33,6 +33,7 @@ builder.Services.AddScoped<RolRepository>();
 builder.Services.AddScoped<CatalogoAdminRepository>();
 builder.Services.AddScoped<ReporteRepository>();
 builder.Services.AddScoped<BajaRepository>();
+builder.Services.AddScoped<NotificacionRepository>();
 builder.Services.AddScoped<BackupService>();
 
 // ---- Autenticación JWT ----

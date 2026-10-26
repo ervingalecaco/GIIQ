@@ -189,9 +189,28 @@ export interface ProximoVencer {
 }
 
 export interface ConsumoLaboratorio {
+  laboratorioId: number
   laboratorio: string
   despachos: number
   lineas: number
+}
+
+/** Lote con existencia de un artículo (detalle del reporte de existencias). */
+export interface LoteExistencia {
+  id: number
+  codigoLote?: string | null
+  fechaVencimiento?: string | null
+  diasRestantes?: number | null
+  cantidadActual: number
+  ubicacion?: string | null
+  proveedor?: string | null
+  fechaIngreso: string
+}
+
+/** Detalle del consumo de un laboratorio en el período. */
+export interface ConsumoDetalle {
+  articulos: { articuloId: number; codigo: string; nombre: string; tipo: string; unidad: string; cantidad: number; despachos: number }[]
+  despachos: { solicitudId: number; fecha: string; tipo: string; solicitante: string; practica?: string | null; lineas: number }[]
 }
 
 export interface Kardex {

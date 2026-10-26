@@ -8,6 +8,7 @@ import { HiArrowLeft, HiSearch } from 'react-icons/hi'
 import { cuentasApi } from '../api/bajas'
 import { useAuth } from '../auth/AuthContext'
 import { CuentaVista } from '../components/CuentaVista'
+import { BotonExcel } from '../components/BotonExcel'
 import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import { Paginador, usePaginacion } from '../components/Paginacion'
 
@@ -38,7 +39,9 @@ export function CuentasPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="Cuentas de estudiantes"
-        subtitle="Cristalería quebrada pendiente de reponer. Sin deuda, se emite la constancia de solvencia para culminar estudios." />
+        subtitle="Cristalería quebrada pendiente de reponer. Sin deuda, se emite la constancia de solvencia para culminar estudios.">
+        <BotonExcel url="/api/cuentas/excel" archivo="cuentas_estudiantes.xlsx" />
+      </PageHeader>
 
       {isLoading && <Cargando />}
       {error && <ErrorAlert error={error} />}

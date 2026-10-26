@@ -15,6 +15,7 @@ import { RespaldosPage } from './pages/RespaldosPage'
 import { BajasPage } from './pages/BajasPage'
 import { CuentaEstudiantePage, CuentasPage, MiCuentaPage } from './pages/CuentasPage'
 import { ConstanciaPage } from './pages/ConstanciaPage'
+import { NotificacionesPage } from './pages/NotificacionesPage'
 import { Cargando } from './components/Feedback'
 
 // Reportes usa AG Grid (pesado): se descarga solo al abrir esa pantalla.
@@ -32,6 +33,7 @@ export default function App() {
         </Route>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="notificaciones" element={<NotificacionesPage />} />
 
           <Route element={<ProtectedRoute perm="solicitud.ver" />}>
             <Route path="solicitudes" element={<Navigate to="/solicitudes/reactivos" replace />} />

@@ -1,13 +1,20 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Badge, Button, Checkbox, Label, TabItem, Tabs, TextInput } from 'flowbite-react'
-import { HiDownload, HiInformationCircle, HiSearch } from 'react-icons/hi'
+import {
+  Alert, Badge, Button, Checkbox, Label, TabItem, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow,
+  Tabs, TextInput, type TabsRef,
+} from 'flowbite-react'
+import { HiChevronRight, HiInformationCircle, HiSearch } from 'react-icons/hi'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import { articulosApi } from '../api/catalogos'
-import { descargarArchivo, reportesApi } from '../api/reportes'
+import { reportesApi } from '../api/reportes'
 import { Cargando, ErrorAlert, PageHeader, TipoBadge } from '../components/Feedback'
 import { SelectBuscable } from '../components/SelectBuscable'
 import { TablaDatos } from '../components/TablaDatos'
+import { BotonExcel } from '../components/BotonExcel'
+import { DatoDetalle, PanelDetalle } from '../components/PanelDetalle'
+import { Paginador, usePaginacion } from '../components/Paginacion'
 import type { ConsumoLaboratorio, Existencia, Kardex, ProximoVencer } from '../types'
 
 const REPORTES = [
@@ -20,16 +27,23 @@ type RepKey = typeof REPORTES[number]['key']
 
 export function ReportesPage() {
   const [rep, setRep] = useState<RepKey>('existencias')
+  const tabs = useRef<TabsRef>(null)
+  // Artículo con el que se abre el kardex cuando se llega desde el detalle de existencias.
+  const [kardexDe, setKardexDe] = useState<number | ''>('')
+  function verKardex(articuloId: number) {
+    setKardexDe(articuloId)
+    tabs.current?.setActiveTab(REPORTES.findIndex((r) => r.key === 'kardex'))
+  }
   return (
     <div className="space-y-5">
-      <PageHeader title="Reportes" />
-      <Tabs variant="underline" onActiveTabChange={(i) => setRep(REPORTES[i].key)}>
+      <PageHeader title="Reportes" subtitle="Toca una fila de existencias o de consumo para ver su detalle." />
+      <Tabs ref={tabs} variant="underline" onActiveTabChange={(i) => setRep(REPORTES[i].key)}>
         {REPORTES.map((r) => (
           <TabItem key={r.key} title={r.label} active={rep === r.key}>
-            {rep === r.key && r.key === 'existencias' && <Existencias />}
+            {rep === r.key && r.key === 'existencias' && <Existencias onVerKardex={verKardex} />}
             {rep === r.key && r.key === 'vencer' && <ProximosVencer />}
             {rep === r.key && r.key === 'consumo' && <Consumo />}
-            {rep === r.key && r.key === 'kardex' && <KardexRep />}
+            {rep === r.key && r.key === 'kardex' && <KardexRep inicial={kardexDe} />}
           </TabItem>
         ))}
       </Tabs>
@@ -58,22 +72,29 @@ function aFecha(s?: string | null) {
 const fechaCorta = (s?: string | null) =>
   s ? (aFecha(s) as Date).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-function BotonExcel({ onClick }: { onClick: () => void }) {
-  return (
-    <Button size="sm" color="green" onClick={onClick}>
-      <HiDownload className="me-1.5 h-4 w-4" /> Exportar a Excel
-    </Button>
-  )
-}
-
 function Vacio({ children }: { children: ReactNode }) {
   return <Alert color="gray" icon={HiInformationCircle}>{children}</Alert>
 }
 
+/** Fila clicable: abre el panel de detalle. */
+const FILA_CON_DETALLE = 'cursor-pointer'
+
+const numero = (n: number) => n.toLocaleString('es', { maximumFractionDigits: 3 })
+
+function SeccionDetalle({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="rotulo mb-2 text-gray-500">{titulo}</h3>
+      {children}
+    </section>
+  )
+}
+
 // ------------------------------------------------------------------ Existencias
-function Existencias() {
+function Existencias({ onVerKardex }: { onVerKardex: (articuloId: number) => void }) {
   const [bajo, setBajo] = useState(false)
   const [buscar, setBuscar] = useState('')
+  const [sel, setSel] = useState<Existencia | null>(null)
   const { data, isLoading, error } = useQuery({
     queryKey: ['rep-existencias', bajo],
     queryFn: () => reportesApi.existencias(bajo),
@@ -85,7 +106,7 @@ function Existencias() {
           <Checkbox id="bajo" checked={bajo} onChange={(e) => setBajo(e.target.checked)} />
           <Label htmlFor="bajo">Solo bajo stock mínimo</Label>
         </div>
-        <BotonExcel onClick={() => descargarArchivo(`/api/reportes/existencias/excel?bajoMinimo=${bajo}`, 'existencias.xlsx')} />
+        <BotonExcel url={`/api/reportes/existencias/excel?bajoMinimo=${bajo}`} archivo='existencias.xlsx' />
       </div>
       {isLoading && <Cargando />}
       {error && <ErrorAlert error={error} />}
@@ -93,10 +114,95 @@ function Existencias() {
         <>
           <Buscador valor={buscar} onChange={setBuscar} />
           <TablaDatos<Existencia> rowData={data} columnDefs={COLUMNAS_EXISTENCIAS} quickFilterText={buscar}
-            getRowId={(p) => String(p.data.articuloId)} />
+            getRowId={(p) => String(p.data.articuloId)} rowClass={FILA_CON_DETALLE}
+            onRowClicked={(e) => e.data && setSel(e.data)} />
         </>
       )}
+      <DetalleExistencia existencia={sel} onCerrar={() => setSel(null)}
+        onVerKardex={(id) => { setSel(null); onVerKardex(id) }} />
     </div>
+  )
+}
+
+/** Detalle de un artículo del reporte de existencias: de qué lotes sale su existencia. */
+function DetalleExistencia({ existencia: e, onCerrar, onVerKardex }: {
+  existencia: Existencia | null
+  onCerrar: () => void
+  onVerKardex: (articuloId: number) => void
+}) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['rep-lotes', e?.articuloId],
+    queryFn: () => reportesApi.lotesArticulo(e!.articuloId),
+    enabled: !!e,
+  })
+  const pag = usePaginacion(data, [e?.articuloId])
+  const estado = ESTADO_EXISTENCIA(e ?? undefined)
+  return (
+    <PanelDetalle abierto={!!e} onCerrar={onCerrar} rotulo={e?.codigo} titulo={e?.nombre}
+      subtitulo={e && (
+        <div className="flex flex-wrap items-center gap-2">
+          <TipoBadge tipo={e.tipo} />
+          <Badge color={estado === 'Disponible' ? 'success' : estado === 'Agotado' ? 'failure' : 'warning'}>{estado}</Badge>
+        </div>
+      )}
+      acciones={e && (
+        <Button size="sm" color="light" onClick={() => onVerKardex(e.articuloId)}>
+          Ver kardex del artículo <HiChevronRight className="ms-1 h-4 w-4" />
+        </Button>
+      )}>
+      {e && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <DatoDetalle etiqueta="Existencia">
+              {numero(e.existencia)} <span className="text-xs font-normal text-gray-500">{e.unidad}</span>
+            </DatoDetalle>
+            <DatoDetalle etiqueta="Mínimo">{numero(e.stockMinimo)}</DatoDetalle>
+            <DatoDetalle etiqueta="Lotes">{data?.length ?? '—'}</DatoDetalle>
+          </div>
+          <SeccionDetalle titulo="Lotes con existencia · primero los que vencen antes">
+            {isLoading && <Cargando />}
+            {error && <ErrorAlert error={error} />}
+            {data && data.length === 0 && <Vacio>Este artículo no tiene lotes con existencia.</Vacio>}
+            {data && data.length > 0 && (
+              <div className="overflow-x-auto rounded-md border border-gray-200">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableHeadCell>Lote</TableHeadCell>
+                      <TableHeadCell>Vence</TableHeadCell>
+                      <TableHeadCell className="text-right">Cantidad</TableHeadCell>
+                      <TableHeadCell>Ubicación</TableHeadCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody className="divide-y">
+                    {pag.visibles?.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="font-mono text-xs">
+                          {l.codigoLote ?? '—'}
+                          {l.proveedor && <span className="mt-0.5 block font-sans text-[11px] text-gray-400">{l.proveedor}</span>}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-mono text-xs">
+                          {fechaCorta(l.fechaVencimiento)}
+                          {l.diasRestantes != null && (
+                            <span className={`mt-0.5 block text-[11px] ${l.diasRestantes < 0 ? 'text-red-700'
+                              : l.diasRestantes <= 30 ? 'text-amber-700' : 'text-gray-400'}`}>
+                              {l.diasRestantes < 0 ? `vencido hace ${-l.diasRestantes} d` : `en ${l.diasRestantes} d`}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs tabular-nums">{numero(l.cantidadActual)}</TableCell>
+                        <TableCell className="text-sm">{l.ubicacion ?? '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            {pag.total > 10 && <div className="mt-3"><Paginador p={pag} nombre="lotes" /></div>}
+          </SeccionDetalle>
+        </>
+      )}
+    </PanelDetalle>
   )
 }
 
@@ -156,7 +262,7 @@ function ProximosVencer() {
             onChange={(e) => setDias(Number(e.target.value) || 1)} />
           días
         </div>
-        <BotonExcel onClick={() => descargarArchivo(`/api/reportes/proximos-vencer/excel?dias=${dias}`, 'proximos_a_vencer.xlsx')} />
+        <BotonExcel url={`/api/reportes/proximos-vencer/excel?dias=${dias}`} archivo='proximos_a_vencer.xlsx' />
       </div>
       {isLoading && <Cargando />}
       {error && <ErrorAlert error={error} />}
@@ -207,6 +313,7 @@ function Consumo() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [buscar, setBuscar] = useState('')
+  const [sel, setSel] = useState<ConsumoLaboratorio | null>(null)
   const { data, isLoading, error } = useQuery({
     queryKey: ['rep-consumo', desde, hasta],
     queryFn: () => reportesApi.consumoLaboratorio(desde || undefined, hasta || undefined),
@@ -221,7 +328,7 @@ function Consumo() {
           <Label htmlFor="hasta">Hasta</Label>
           <TextInput id="hasta" sizing="sm" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </div>
-        <BotonExcel onClick={() => descargarArchivo(`/api/reportes/consumo-laboratorio/excel?${qs}`, 'consumo_laboratorio.xlsx')} />
+        <BotonExcel url={`/api/reportes/consumo-laboratorio/excel?${qs}`} archivo='consumo_laboratorio.xlsx' />
       </div>
       {isLoading && <Cargando />}
       {error && <ErrorAlert error={error} />}
@@ -230,10 +337,101 @@ function Consumo() {
         : (
           <>
             <Buscador valor={buscar} onChange={setBuscar} />
-            <TablaDatos<ConsumoLaboratorio> rowData={data} columnDefs={COLUMNAS_CONSUMO} quickFilterText={buscar} />
+            <TablaDatos<ConsumoLaboratorio> rowData={data} columnDefs={COLUMNAS_CONSUMO} quickFilterText={buscar}
+              rowClass={FILA_CON_DETALLE} onRowClicked={(e) => e.data && setSel(e.data)} />
           </>
         ))}
+      <DetalleConsumo consumo={sel} desde={desde} hasta={hasta} onCerrar={() => setSel(null)} />
     </div>
+  )
+}
+
+/** Detalle del consumo de un laboratorio: qué artículos se le despacharon y en qué solicitudes. */
+function DetalleConsumo({ consumo: c, desde, hasta, onCerrar }: {
+  consumo: ConsumoLaboratorio | null
+  desde: string
+  hasta: string
+  onCerrar: () => void
+}) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['rep-consumo-detalle', c?.laboratorioId, desde, hasta],
+    queryFn: () => reportesApi.consumoLaboratorioDetalle(c!.laboratorioId, desde || undefined, hasta || undefined),
+    enabled: !!c,
+  })
+  const pagArt = usePaginacion(data?.articulos, [c?.laboratorioId])
+  const pagDesp = usePaginacion(data?.despachos, [c?.laboratorioId])
+  const periodo = desde || hasta
+    ? `${desde ? fechaCorta(desde) : 'el inicio'} – ${hasta ? fechaCorta(hasta) : 'hoy'}`
+    : 'Últimos 30 días'
+  return (
+    <PanelDetalle abierto={!!c} onCerrar={onCerrar} rotulo="Consumo por laboratorio" titulo={c?.laboratorio}
+      subtitulo={<span className="font-mono text-xs">{periodo}</span>}>
+      {c && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <DatoDetalle etiqueta="Despachos">{c.despachos}</DatoDetalle>
+            <DatoDetalle etiqueta="Líneas">{c.lineas}</DatoDetalle>
+            <DatoDetalle etiqueta="Artículos">{data?.articulos.length ?? '—'}</DatoDetalle>
+          </div>
+          {isLoading && <Cargando />}
+          {error && <ErrorAlert error={error} />}
+          {data && (
+            <>
+              <SeccionDetalle titulo="Artículos despachados · de más a menos">
+                <div className="overflow-x-auto rounded-md border border-gray-200">
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableHeadCell>Artículo</TableHeadCell>
+                        <TableHeadCell className="text-right">Cantidad</TableHeadCell>
+                        <TableHeadCell className="text-right">Despachos</TableHeadCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody className="divide-y">
+                      {pagArt.visibles?.map((a) => (
+                        <TableRow key={a.articuloId}>
+                          <TableCell>
+                            <span className="block font-mono text-[11px] font-medium text-primary-700">{a.codigo}</span>
+                            <span className="text-sm font-medium text-gray-900">{a.nombre}</span>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-right font-mono text-xs tabular-nums">
+                            {numero(a.cantidad)} {a.unidad}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs tabular-nums">{a.despachos}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {pagArt.total > 10 && <div className="mt-3"><Paginador p={pagArt} nombre="artículos" /></div>}
+              </SeccionDetalle>
+
+              <SeccionDetalle titulo="Despachos · más recientes primero">
+                <ul className="divide-y divide-gray-100 rounded-md border border-gray-200">
+                  {pagDesp.visibles?.map((d) => (
+                    <li key={`${d.solicitudId}-${d.fecha}`}>
+                      <Link to={`/solicitudes/${d.tipo === 'REACTIVO' ? 'reactivos' : 'cristaleria'}?ver=${d.solicitudId}`}
+                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50">
+                        <span className="w-12 shrink-0 font-mono text-xs font-medium text-primary-700">#{d.solicitudId}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-gray-900">{d.solicitante}</span>
+                          <span className="block truncate text-xs text-gray-500">
+                            {d.practica ?? 'Sin práctica'} · {d.lineas} {d.lineas === 1 ? 'línea' : 'líneas'}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[11px] text-gray-400">{fechaCorta(d.fecha)}</span>
+                        <HiChevronRight className="h-4 w-4 shrink-0 text-gray-300" aria-hidden />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {pagDesp.total > 10 && <div className="mt-3"><Paginador p={pagDesp} nombre="despachos" /></div>}
+              </SeccionDetalle>
+            </>
+          )}
+        </>
+      )}
+    </PanelDetalle>
   )
 }
 
@@ -251,9 +449,9 @@ const COLUMNAS_CONSUMO: ColDef<ConsumoLaboratorio>[] = [
 ]
 
 // ------------------------------------------------------------------ Kardex
-function KardexRep() {
+function KardexRep({ inicial = '' }: { inicial?: number | '' }) {
   const articulos = useQuery({ queryKey: ['articulos'], queryFn: () => articulosApi.list() })
-  const [articuloId, setArticuloId] = useState<number | ''>('')
+  const [articuloId, setArticuloId] = useState<number | ''>(inicial)
   const [buscar, setBuscar] = useState('')
   const { data, isLoading, error } = useQuery({
     queryKey: ['rep-kardex', articuloId],
@@ -272,7 +470,7 @@ function KardexRep() {
             opciones={articulos.data?.map((a) => ({ id: a.id, nombre: `${a.codigo} — ${a.nombre}` })) ?? []} />
         </div>
         {articuloId !== '' && (
-          <BotonExcel onClick={() => descargarArchivo(`/api/reportes/kardex/excel?articuloId=${articuloId}`, 'kardex.xlsx')} />
+          <BotonExcel url={`/api/reportes/kardex/excel?articuloId=${articuloId}`} archivo='kardex.xlsx' />
         )}
       </div>
       {articuloId === '' && <Vacio>Elige un artículo para ver su kardex.</Vacio>}
@@ -292,10 +490,10 @@ function KardexRep() {
 
 /** Color de cada tipo de movimiento: lo que entra en verde, lo que sale en ámbar. */
 const COLOR_MOVIMIENTO: Record<string, string> = {
-  ENTRADA: 'success', SALIDA: 'warning', DEVOLUCION: 'info', AJUSTE: 'gray',
+  ENTRADA: 'success', SALIDA: 'warning', DEVOLUCION: 'info', AJUSTE: 'gray', BAJA: 'failure', REPOSICION: 'success',
 }
 const TEXTO_MOVIMIENTO: Record<string, string> = {
-  ENTRADA: 'Entrada', SALIDA: 'Salida', DEVOLUCION: 'Devolución', AJUSTE: 'Ajuste',
+  ENTRADA: 'Entrada', SALIDA: 'Salida', DEVOLUCION: 'Devolución', AJUSTE: 'Ajuste', BAJA: 'Baja', REPOSICION: 'Reposición',
 }
 
 /** Columnas del kardex, en orden cronológico como viene de la API. */

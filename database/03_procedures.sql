@@ -26,9 +26,168 @@ DROP PROCEDURE IF EXISTS sp__baja_aplicar;
 DROP PROCEDURE IF EXISTS sp_baja_registrar;
 DROP PROCEDURE IF EXISTS sp_reposicion_registrar;
 DROP PROCEDURE IF EXISTS sp_constancia_emitir;
+DROP PROCEDURE IF EXISTS sp__notificar;
+DROP PROCEDURE IF EXISTS sp__notificar_rol;
+DROP PROCEDURE IF EXISTS sp__notificar_solicitud;
 -- -----------------------------------------------------------------------------
 
 DELIMITER $$
+
+-- =============================================================================
+-- sp__notificar  (interno)
+-- Una notificación para un usuario. No avisa a quien hizo la acción ni a
+-- usuarios inactivos. No abre transacción: corre dentro de la de quien llama.
+-- =============================================================================
+CREATE PROCEDURE sp__notificar (
+    IN p_usuario_id   INT UNSIGNED,
+    IN p_actor_id     INT UNSIGNED,
+    IN p_tipo         VARCHAR(30),
+    IN p_titulo       VARCHAR(120),
+    IN p_mensaje      VARCHAR(500),
+    IN p_enlace       VARCHAR(200),
+    IN p_solicitud_id INT UNSIGNED
+)
+BEGIN
+    IF p_usuario_id IS NOT NULL AND NOT (p_usuario_id <=> p_actor_id) THEN
+        INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, enlace, solicitud_id)
+        SELECT u.id, p_tipo, p_titulo, LEFT(p_mensaje, 500), p_enlace, p_solicitud_id
+        FROM usuarios u WHERE u.id = p_usuario_id AND u.activo = 1;
+    END IF;
+END$$
+
+-- =============================================================================
+-- sp__notificar_rol  (interno)
+-- La misma notificación para todos los usuarios activos de un rol (Supervisor,
+-- Bodega…), salvo quien hizo la acción.
+-- =============================================================================
+CREATE PROCEDURE sp__notificar_rol (
+    IN p_rol          VARCHAR(50),
+    IN p_actor_id     INT UNSIGNED,
+    IN p_tipo         VARCHAR(30),
+    IN p_titulo       VARCHAR(120),
+    IN p_mensaje      VARCHAR(500),
+    IN p_enlace       VARCHAR(200),
+    IN p_solicitud_id INT UNSIGNED
+)
+BEGIN
+    INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, enlace, solicitud_id)
+    SELECT u.id, p_tipo, p_titulo, LEFT(p_mensaje, 500), p_enlace, p_solicitud_id
+    FROM usuarios u JOIN roles r ON r.id = u.rol_id
+    WHERE r.nombre = p_rol AND u.activo = 1 AND NOT (u.id <=> p_actor_id);
+END$$
+
+-- =============================================================================
+-- sp__notificar_solicitud  (interno)
+-- Avisa a quien le toca según el evento del flujo de una solicitud:
+--   CREADA             estudiante → su profesor | profesor → supervisores
+--   AVALADA            → estudiante y supervisores
+--   RECHAZADA_PROFESOR → estudiante
+--   APROBADA           → solicitante (estudiante y profesor) y bodega
+--   RECHAZADA          → solicitante
+--   PREPARADA          → solicitante (lista para retirar)
+--   ENTREGADA          → solicitante (en cristalería, recordar devolverla)
+--   DEVUELTA           → solicitante
+-- Los mensajes llevan nombres reales: quién actuó, el estudiante, la práctica y la clase.
+-- =============================================================================
+CREATE PROCEDURE sp__notificar_solicitud (
+    IN p_solicitud_id INT UNSIGNED,
+    IN p_actor_id     INT UNSIGNED,
+    IN p_evento       VARCHAR(30)
+)
+BEGIN
+    DECLARE v_tipo       VARCHAR(12);
+    DECLARE v_profesor   INT UNSIGNED;
+    DECLARE v_estudiante INT UNSIGNED;
+    DECLARE v_est_nombre VARCHAR(121);
+    DECLARE v_actor      VARCHAR(121);
+    DECLARE v_practica   VARCHAR(150);
+    DECLARE v_clase      VARCHAR(120);
+    DECLARE v_requerida  DATE;
+    DECLARE v_motivo     VARCHAR(255);
+    DECLARE v_que        VARCHAR(400);   -- «la solicitud #12 de reactivos para la práctica X (Clase)»
+    DECLARE v_enlace     VARCHAR(200);
+
+    SELECT s.tipo, s.profesor_id, s.estudiante_id, e.nombre_completo, p.nombre, c.nombre,
+           s.fecha_requerida, s.motivo_rechazo
+      INTO v_tipo, v_profesor, v_estudiante, v_est_nombre, v_practica, v_clase, v_requerida, v_motivo
+    FROM solicitudes s
+    LEFT JOIN usuarios e  ON e.id = s.estudiante_id
+    LEFT JOIN practicas p ON p.id = s.practica_id
+    LEFT JOIN clases c    ON c.id = p.clase_id
+    WHERE s.id = p_solicitud_id;
+
+    SELECT nombre_completo INTO v_actor FROM usuarios WHERE id = p_actor_id;
+
+    SET v_que = CONCAT('la solicitud #', p_solicitud_id, ' de ', IF(v_tipo = 'REACTIVO', 'reactivos', 'cristalería'),
+                       IF(v_practica IS NULL, '',
+                          CONCAT(' para la práctica «', v_practica, '»', IF(v_clase IS NULL, '', CONCAT(' (', v_clase, ')')))));
+    SET v_enlace = CONCAT('/solicitudes/', IF(v_tipo = 'REACTIVO', 'reactivos', 'cristaleria'), '?ver=', p_solicitud_id);
+
+    CASE p_evento
+    WHEN 'CREADA' THEN
+        IF v_estudiante IS NOT NULL THEN
+            CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Solicitud por avalar',
+                 CONCAT(v_actor, ' generó ', v_que, '. Espera tu visto bueno.'), v_enlace, p_solicitud_id);
+        ELSE
+            CALL sp__notificar_rol('Supervisor', p_actor_id, p_evento, 'Solicitud por aprobar',
+                 CONCAT(v_actor, ' generó ', v_que, '.'), v_enlace, p_solicitud_id);
+        END IF;
+
+    WHEN 'AVALADA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud avalada',
+             CONCAT('Tu profesor ', v_actor, ' avaló ', v_que, '. Ahora la revisa el supervisor.'), v_enlace, p_solicitud_id);
+        CALL sp__notificar_rol('Supervisor', p_actor_id, 'CREADA', 'Solicitud por aprobar',
+             CONCAT(v_actor, ' avaló ', v_que, ', pedida por ', COALESCE(v_est_nombre, 'su estudiante'), '.'),
+             v_enlace, p_solicitud_id);
+
+    WHEN 'RECHAZADA_PROFESOR' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud rechazada por tu profesor',
+             CONCAT(v_actor, ' rechazó ', v_que, IF(v_motivo IS NULL, '.', CONCAT('. Motivo: ', v_motivo))),
+             v_enlace, p_solicitud_id);
+
+    WHEN 'APROBADA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud aprobada',
+             CONCAT(v_actor, ' aprobó ', v_que, '. Bodega la preparará.'), v_enlace, p_solicitud_id);
+        CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Solicitud aprobada',
+             CONCAT(v_actor, ' aprobó ', v_que,
+                    IF(v_est_nombre IS NULL, '.', CONCAT(', pedida por ', v_est_nombre, '.'))), v_enlace, p_solicitud_id);
+        CALL sp__notificar_rol('Bodega', p_actor_id, p_evento, 'Solicitud por preparar',
+             CONCAT('Hay que preparar ', v_que,
+                    IF(v_requerida IS NULL, '.', CONCAT('. Se requiere el ', DATE_FORMAT(v_requerida, '%d/%m/%Y'), '.'))),
+             v_enlace, p_solicitud_id);
+
+    WHEN 'RECHAZADA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud rechazada',
+             CONCAT(v_actor, ' rechazó ', v_que, IF(v_motivo IS NULL, '.', CONCAT('. Motivo: ', v_motivo))),
+             v_enlace, p_solicitud_id);
+        CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Solicitud rechazada',
+             CONCAT(v_actor, ' rechazó ', v_que, IF(v_motivo IS NULL, '.', CONCAT('. Motivo: ', v_motivo))),
+             v_enlace, p_solicitud_id);
+
+    WHEN 'PREPARADA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud lista para retirar',
+             CONCAT('Bodega preparó ', v_que, '. Ya puedes retirarla.'), v_enlace, p_solicitud_id);
+        CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Solicitud lista para retirar',
+             CONCAT('Bodega preparó ', v_que, '.'), v_enlace, p_solicitud_id);
+
+    WHEN 'ENTREGADA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Solicitud entregada',
+             CONCAT('Bodega entregó ', v_que,
+                    IF(v_tipo = 'CRISTALERIA', '. Recuerda devolver la cristalería al terminar la práctica.', '.')),
+             v_enlace, p_solicitud_id);
+        CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Solicitud entregada',
+             CONCAT('Bodega entregó ', v_que, '.'), v_enlace, p_solicitud_id);
+
+    WHEN 'DEVUELTA' THEN
+        CALL sp__notificar(v_estudiante, p_actor_id, p_evento, 'Devolución registrada',
+             CONCAT('Bodega registró la devolución de ', v_que, '.'), v_enlace, p_solicitud_id);
+        CALL sp__notificar(v_profesor, p_actor_id, p_evento, 'Devolución registrada',
+             CONCAT('Bodega registró la devolución de ', v_que, '.'), v_enlace, p_solicitud_id);
+
+    ELSE BEGIN END;
+    END CASE;
+END$$
+
 
 -- =============================================================================
 -- sp_entrada_registrar
@@ -229,6 +388,9 @@ BEGIN
                         'profesor_id', p_profesor_id, 'estudiante_id', p_estudiante_id,
                         'estado', v_estado));
 
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(v_sol_id, COALESCE(p_estudiante_id, p_profesor_id), 'CREADA');
+
     COMMIT;
 
     SELECT v_sol_id AS solicitud_id, v_lineas AS lineas;
@@ -277,6 +439,9 @@ BEGIN
     INSERT INTO auditoria (usuario_id, entidad, entidad_id, accion, valores_antes, valores_despues)
     VALUES (p_usuario_id, 'solicitudes', p_solicitud_id, 'AVALAR',
             JSON_OBJECT('estado', v_estado), JSON_OBJECT('estado', 'PENDIENTE'));
+
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_usuario_id, 'AVALADA');
 
     COMMIT;
 END$$
@@ -327,6 +492,9 @@ BEGIN
     VALUES (p_usuario_id, 'solicitudes', p_solicitud_id, 'RECHAZAR_PROFESOR',
             JSON_OBJECT('estado', v_estado), JSON_OBJECT('estado', 'RECHAZADA', 'motivo', p_motivo));
 
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_usuario_id, 'RECHAZADA_PROFESOR');
+
     COMMIT;
 END$$
 
@@ -363,6 +531,9 @@ BEGIN
     INSERT INTO auditoria (usuario_id, entidad, entidad_id, accion, valores_antes, valores_despues)
     VALUES (p_supervisor_id, 'solicitudes', p_solicitud_id, 'APROBAR',
             JSON_OBJECT('estado', v_estado), JSON_OBJECT('estado', 'APROBADA'));
+
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_supervisor_id, 'APROBADA');
 
     COMMIT;
 END$$
@@ -407,6 +578,9 @@ BEGIN
     VALUES (p_supervisor_id, 'solicitudes', p_solicitud_id, 'RECHAZAR',
             JSON_OBJECT('estado', v_estado),
             JSON_OBJECT('estado', 'RECHAZADA', 'motivo', p_motivo));
+
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_supervisor_id, 'RECHAZADA');
 
     COMMIT;
 END$$
@@ -521,6 +695,9 @@ BEGIN
             JSON_OBJECT('estado', 'APROBADA'),
             JSON_OBJECT('estado', 'PREPARADA', 'movimiento_id', v_mov_id));
 
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_bodega_id, 'PREPARADA');
+
     COMMIT;
 
     SELECT v_mov_id AS movimiento_id;
@@ -565,6 +742,9 @@ BEGIN
     INSERT INTO auditoria (usuario_id, entidad, entidad_id, accion, valores_antes, valores_despues)
     VALUES (p_bodega_id, 'solicitudes', p_solicitud_id, 'ENTREGAR',
             JSON_OBJECT('estado', 'PREPARADA'), JSON_OBJECT('estado', v_nuevo));
+
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_bodega_id, 'ENTREGADA');
 
     COMMIT;
 END$$
@@ -665,6 +845,14 @@ BEGIN
     IF p_estudiante_id IS NOT NULL THEN
         INSERT INTO cargos_estudiante (baja_id, estudiante_id, articulo_id, cantidad)
         VALUES (p_baja_id, p_estudiante_id, p_articulo_id, p_cantidad);
+
+        CALL sp__notificar(p_estudiante_id, p_usuario_id, 'CARGO', 'Cristalería por reponer',
+             CONCAT('Se registró a tu nombre la baja de ', TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(p_cantidad AS CHAR))), ' ',
+                    (SELECT um.abreviatura FROM articulos a JOIN unidades_medida um ON um.id = a.unidad_id WHERE a.id = p_articulo_id),
+                    ' de «', v_nombre, '» (', LOWER(p_causa), ')',
+                    IF(p_solicitud_id IS NULL, '', CONCAT(', solicitud #', p_solicitud_id)),
+                    '. Entrega en bodega una pieza igual para saldarlo.'),
+             '/mi-cuenta', p_solicitud_id);
     END IF;
 
     INSERT INTO auditoria (usuario_id, entidad, entidad_id, accion, valores_antes, valores_despues)
@@ -768,6 +956,14 @@ BEGIN
            estado     = IF(cantidad_repuesta >= cantidad, 'SALDADO', 'PENDIENTE'),
            saldado_en = IF(cantidad_repuesta >= cantidad, NOW(), NULL)
      WHERE id = p_cargo_id;
+
+    CALL sp__notificar(v_estudiante, p_usuario_id, 'REPOSICION',
+         IF(v_pendiente - p_cantidad <= 0, 'Cargo saldado', 'Reposición recibida'),
+         CONCAT('Bodega recibió ', TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(p_cantidad AS CHAR))), ' pieza(s) de «',
+                (SELECT a.nombre FROM cargos_estudiante c JOIN articulos a ON a.id = c.articulo_id WHERE c.id = p_cargo_id), '». ',
+                IF(v_pendiente - p_cantidad <= 0, 'Ese cargo quedó saldado.',
+                   CONCAT('Te quedan ', TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(v_pendiente - p_cantidad AS CHAR))), ' por reponer.'))),
+         '/mi-cuenta', NULL);
 
     INSERT INTO auditoria (usuario_id, entidad, entidad_id, accion, valores_antes, valores_despues)
     VALUES (p_usuario_id, 'cargos_estudiante', p_cargo_id, 'REPONER',
@@ -953,6 +1149,9 @@ BEGIN
     VALUES (p_bodega_id, 'solicitudes', p_solicitud_id, 'DEVOLVER',
             JSON_OBJECT('estado', 'ENTREGADA'),
             JSON_OBJECT('estado', 'CERRADA', 'materiales_reingresados', v_mat, 'bajas', v_n));
+
+    -- Aviso a quien le toca (dentro de la misma transacción).
+    CALL sp__notificar_solicitud(p_solicitud_id, p_bodega_id, 'DEVUELTA');
 
     COMMIT;
 END$$

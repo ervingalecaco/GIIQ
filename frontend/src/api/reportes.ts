@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { ConsumoLaboratorio, DashboardData, Existencia, Kardex, ProximoVencer } from '../types'
+import type { ConsumoDetalle, ConsumoLaboratorio, DashboardData, Existencia, Kardex, LoteExistencia, ProximoVencer } from '../types'
 
 export const dashboardApi = {
   get: () => api.get<DashboardData>('/api/dashboard').then((r) => r.data),
@@ -14,6 +14,10 @@ export const reportesApi = {
     api.get<ProximoVencer[]>('/api/reportes/lotes-vencidos').then((r) => r.data),
   consumoLaboratorio: (desde?: string, hasta?: string) =>
     api.get<ConsumoLaboratorio[]>('/api/reportes/consumo-laboratorio', { params: { desde, hasta } }).then((r) => r.data),
+  lotesArticulo: (articuloId: number) =>
+    api.get<LoteExistencia[]>(`/api/reportes/existencias/${articuloId}/lotes`).then((r) => r.data),
+  consumoLaboratorioDetalle: (laboratorioId: number, desde?: string, hasta?: string) =>
+    api.get<ConsumoDetalle>(`/api/reportes/consumo-laboratorio/${laboratorioId}`, { params: { desde, hasta } }).then((r) => r.data),
   kardex: (articuloId: number, desde?: string, hasta?: string) =>
     api.get<Kardex[]>('/api/reportes/kardex', { params: { articuloId, desde, hasta } }).then((r) => r.data),
 }

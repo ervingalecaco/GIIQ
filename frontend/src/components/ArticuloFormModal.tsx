@@ -10,6 +10,7 @@ import { especialesDe, NFPA_CUADRANTES, NFPA_ESPECIALES, type CuadranteNfpa } fr
 import { RomboNfpa } from './RomboNfpa'
 import { CampoImagen } from './ImagenArticulo'
 import { useAuth } from '../auth/AuthContext'
+import { useDialogos } from './Dialogos'
 
 const label = 'mb-2 block'
 
@@ -22,6 +23,7 @@ export function ArticuloFormModal({ articuloId, tipoFijo, onClose, onSaved }: {
 }) {
   const esNuevo = articuloId === 'nuevo'
   const { hasPerm } = useAuth()
+  const { avisar } = useDialogos()
   const categorias = useQuery({ queryKey: ['categorias'], queryFn: catalogosApi.categorias })
   const unidades = useQuery({ queryKey: ['unidades'], queryFn: catalogosApi.unidades })
   const detalle = useQuery({
@@ -107,7 +109,7 @@ export function ArticuloFormModal({ articuloId, tipoFijo, onClose, onSaved }: {
           else if (quitarImagen) await articulosApi.quitarImagen(id)
         } catch (err) {
           // El artículo ya quedó guardado: se avisa y se puede reintentar editándolo.
-          alert(`El artículo se guardó, pero la imagen no: ${apiError(err)}`)
+          avisar(`El artículo se guardó, pero la imagen no: ${apiError(err)}`, 'error')
         }
       }
       onSaved()

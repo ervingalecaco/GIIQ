@@ -6,6 +6,7 @@ import { rolesApi } from '../api/admin'
 import { apiError } from '../api/client'
 import { Cargando, ErrorAlert, PageHeader } from '../components/Feedback'
 import type { Permiso } from '../types'
+import { useDialogos } from '../components/Dialogos'
 
 export function RolesPage() {
   const qc = useQueryClient()
@@ -42,13 +43,14 @@ export function RolesPage() {
     })
   }
 
+  const { avisar } = useDialogos()
   const guardar = useMutation({
     mutationFn: () => rolesApi.setPermisos(selId!, [...checked]),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
-      alert('Permisos actualizados.')
+      avisar('Permisos actualizados. Los usuarios de ese rol los verán al volver a iniciar sesión.', 'exito')
     },
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   return (

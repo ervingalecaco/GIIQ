@@ -1,6 +1,7 @@
 using LabQuim.Api.Auth;
 using LabQuim.Api.Models;
 using LabQuim.Api.Repositories;
+using LabQuim.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,24 @@ public sealed class CuentasController : ControllerBase
     [Authorize(Policy = "cuentas.ver")]
     public async Task<ActionResult<IReadOnlyList<CuentaResumenDto>>> List(CancellationToken ct)
         => Ok(await _repo.CuentasAsync(ct));
+
+    /// <summary>Todas las cuentas (con deuda y saldadas), en Excel.</summary>
+    [HttpGet("excel")]
+    [Authorize(Policy = "cuentas.ver")]
+    public async Task<IActionResult> Excel(CancellationToken ct)
+    {
+        var datos = await _repo.CuentasAsync(ct);
+        var bytes = ExcelExporter.Build("Cuentas de estudiantes",
+            new[] { "Código", "Estudiante", "Estado", "Piezas pendientes", "Cargos pendientes", "Piezas cargadas",
+                    "Piezas repuestas", "Cargos totales", "Última baja", "Usuario activo" },
+            datos.Select(c => new object?[]
+            {
+                c.Codigo, c.Estudiante, c.PiezasPendientes > 0 ? "Con piezas pendientes" : "Solvente",
+                c.PiezasPendientes, c.CargosPendientes, c.PiezasCargadas, c.PiezasRepuestas, c.CargosTotales,
+                c.UltimaBaja?.Date, c.Activo ? "Sí" : "No",
+            }));
+        return File(bytes, ExcelExporter.ContentType, $"cuentas_estudiantes_{DateTime.Today:yyyyMMdd}.xlsx");
+    }
 
     [HttpGet("{estudianteId:int}")]
     [Authorize(Policy = "cuentas.ver")]

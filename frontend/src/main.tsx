@@ -6,6 +6,7 @@ import { createTheme, ThemeProvider } from 'flowbite-react'
 import { AuthProvider } from './auth/AuthContext'
 import { ThemeInit } from '../.flowbite-react/init'
 import App from './App'
+import { DialogosProvider } from './components/Dialogos'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -40,7 +41,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <App />
+            <DialogosProvider>
+              <App />
+            </DialogosProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

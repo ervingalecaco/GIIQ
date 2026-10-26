@@ -52,6 +52,7 @@ Examen de Grado/
 │  ├─ 13_migracion_rombo_nfpa.sql ← solo para bases viejas (rombo de seguridad NFPA 704)
 │  ├─ 14_migracion_imagenes_cristaleria.sql ← solo para bases viejas (foto de referencia de la cristalería)
 │  ├─ 15_migracion_bajas_cuentas.sql ← solo para bases viejas (bajas de cristalería y cuenta del estudiante)
+│  ├─ 16_migracion_notificaciones.sql ← solo para bases viejas (notificaciones dentro de la app)
 │  └─ ER_diagrama.md         ← diagrama entidad-relación (Mermaid)
 ├─ backend/LabQuim.Api/      ← API en .NET 10
 └─ frontend/                 ← app React (Vite)

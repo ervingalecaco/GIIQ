@@ -34,6 +34,15 @@ public sealed class ReportesController : ControllerBase
         [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
         => Ok(await _repo.ConsumoLaboratorioAsync(desde ?? Hoy.AddDays(-30), hasta ?? Hoy, ct));
 
+    [HttpGet("existencias/{articuloId:int}/lotes")]
+    public async Task<IActionResult> LotesArticulo(int articuloId, CancellationToken ct)
+        => Ok(await _repo.LotesArticuloAsync(articuloId, ct));
+
+    [HttpGet("consumo-laboratorio/{laboratorioId:int}")]
+    public async Task<IActionResult> ConsumoLaboratorioDetalle(
+        int laboratorioId, [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
+        => Ok(await _repo.ConsumoLaboratorioDetalleAsync(laboratorioId, desde ?? Hoy.AddDays(-30), hasta ?? Hoy, ct));
+
     [HttpGet("entradas-proveedor")]
     public async Task<IActionResult> EntradasProveedor(
         [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)

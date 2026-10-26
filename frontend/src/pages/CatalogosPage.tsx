@@ -17,6 +17,7 @@ import { ActivoBadge, Cargando, ErrorAlert, PageHeader } from '../components/Fee
 import { Modal } from '../components/Modal'
 import { MultiSelectBuscable, SelectBuscable } from '../components/SelectBuscable'
 import { Paginador, usePaginacion } from '../components/Paginacion'
+import { useDialogos } from '../components/Dialogos'
 
 // Reactivos y Cristalería no van aquí: tienen su propia sección en el menú.
 export function CatalogosPage() {
@@ -50,11 +51,12 @@ function CatalogoGenerico({ entidad }: { entidad: EntidadCat }) {
   })
   const pag = usePaginacion(data)
 
+  const { avisar } = useDialogos()
   const estado = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) =>
       catAdminApi.estado(entidad.key, id, activo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['catalogo', entidad.key] }),
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   return (

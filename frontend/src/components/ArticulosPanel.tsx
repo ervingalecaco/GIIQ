@@ -16,6 +16,7 @@ import { RomboNfpa } from './RomboNfpa'
 import { MiniaturaArticulo } from './ImagenArticulo'
 import { especialesDe, NFPA_ESPECIALES, tieneRombo } from '../nfpa'
 import type { Articulo, TipoArticulo } from '../types'
+import { useDialogos } from './Dialogos'
 
 const sinAcentos = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
@@ -96,11 +97,12 @@ export function ArticulosPanel({ tipo, toolbar }: { tipo?: TipoArticulo; toolbar
     vista === 'activos' ? a.activo : vista === 'inactivos' ? !a.activo : true)
   const pag = usePaginacion(visibles, [vista, buscar, filtroNfpa])
 
+  const { avisar } = useDialogos()
   const estado = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) =>
       articulosApi.cambiarEstado(id, activo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['articulos'] }),
-    onError: (e) => alert(apiError(e)),
+    onError: (e) => avisar(apiError(e), 'error'),
   })
 
   function refrescar() {

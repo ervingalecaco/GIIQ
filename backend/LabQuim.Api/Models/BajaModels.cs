@@ -58,6 +58,8 @@ public sealed class CuentaResumenDto
     public int CargosPendientes { get; set; }
     public decimal PiezasPendientes { get; set; }
     public int CargosTotales { get; set; }
+    public decimal PiezasCargadas { get; set; }
+    public decimal PiezasRepuestas { get; set; }
     public DateTime? UltimaBaja { get; set; }
 }
 

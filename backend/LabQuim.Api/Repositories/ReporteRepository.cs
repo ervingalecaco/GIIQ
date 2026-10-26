@@ -136,7 +136,7 @@ public sealed class ReporteRepository
     {
         await using var con = await _factory.CreateOpenConnectionAsync(ct);
         const string sql = @"
-            SELECT l.nombre AS laboratorio,
+            SELECT l.id AS laboratorio_id, l.nombre AS laboratorio,
                    COUNT(DISTINCT m.id) AS despachos,
                    COUNT(md.id) AS lineas
             FROM movimientos m
@@ -149,6 +149,62 @@ public sealed class ReporteRepository
         return (await con.QueryAsync<ConsumoLaboratorioDto>(new CommandDefinition(
             sql, new { desde = desde.ToDateTime(TimeOnly.MinValue), hasta = hasta.AddDays(1).ToDateTime(TimeOnly.MinValue) },
             cancellationToken: ct))).AsList();
+    }
+
+    /// <summary>Lotes con existencia de un artículo, primero los que vencen antes (orden FEFO).</summary>
+    public async Task<IReadOnlyList<LoteExistenciaDto>> LotesArticuloAsync(int articuloId, CancellationToken ct = default)
+    {
+        await using var con = await _factory.CreateOpenConnectionAsync(ct);
+        const string sql = @"
+            SELECT l.id, l.codigo_lote, l.fecha_vencimiento,
+                   DATEDIFF(l.fecha_vencimiento, CURDATE()) AS dias_restantes,
+                   l.cantidad_actual, ub.nombre AS ubicacion, pr.nombre AS proveedor, l.fecha_ingreso
+            FROM lotes l
+            LEFT JOIN ubicaciones ub ON ub.id = l.ubicacion_id
+            LEFT JOIN proveedores pr ON pr.id = l.proveedor_id
+            WHERE l.articulo_id = @articuloId AND l.activo = 1 AND l.cantidad_actual > 0
+            ORDER BY l.fecha_vencimiento IS NULL, l.fecha_vencimiento, l.fecha_ingreso";
+        return (await con.QueryAsync<LoteExistenciaDto>(
+            new CommandDefinition(sql, new { articuloId }, cancellationToken: ct))).AsList();
+    }
+
+    /// <summary>Qué se despachó a un laboratorio en el período: artículos sumados y cada despacho.</summary>
+    public async Task<ConsumoDetalleDto> ConsumoLaboratorioDetalleAsync(
+        int laboratorioId, DateOnly desde, DateOnly hasta, CancellationToken ct = default)
+    {
+        await using var con = await _factory.CreateOpenConnectionAsync(ct);
+        var p = new { laboratorioId, desde = desde.ToDateTime(TimeOnly.MinValue), hasta = hasta.AddDays(1).ToDateTime(TimeOnly.MinValue) };
+
+        var articulos = (await con.QueryAsync<ConsumoArticuloDto>(new CommandDefinition(@"
+            SELECT a.id AS articulo_id, a.codigo, a.nombre, a.tipo, um.abreviatura AS unidad,
+                   SUM(ABS(md.cantidad)) AS cantidad, COUNT(DISTINCT m.id) AS despachos
+            FROM movimientos m
+            JOIN solicitudes s         ON s.id = m.solicitud_id
+            JOIN movimiento_detalle md ON md.movimiento_id = m.id
+            JOIN lotes lo              ON lo.id = md.lote_id
+            JOIN articulos a           ON a.id = lo.articulo_id
+            JOIN unidades_medida um    ON um.id = a.unidad_id
+            WHERE m.tipo = 'SALIDA' AND s.laboratorio_id = @laboratorioId
+              AND m.fecha >= @desde AND m.fecha < @hasta
+            GROUP BY a.id, a.codigo, a.nombre, a.tipo, um.abreviatura
+            ORDER BY cantidad DESC", p, cancellationToken: ct))).AsList();
+
+        var despachos = (await con.QueryAsync<ConsumoDespachoDto>(new CommandDefinition(@"
+            SELECT s.id AS solicitud_id, m.fecha, s.tipo,
+                   COALESCE(e.nombre_completo, pf.nombre_completo) AS solicitante,
+                   pr.nombre AS practica, COUNT(md.id) AS lineas
+            FROM movimientos m
+            JOIN solicitudes s         ON s.id = m.solicitud_id
+            JOIN movimiento_detalle md ON md.movimiento_id = m.id
+            JOIN usuarios pf           ON pf.id = s.profesor_id
+            LEFT JOIN usuarios e       ON e.id = s.estudiante_id
+            LEFT JOIN practicas pr     ON pr.id = s.practica_id
+            WHERE m.tipo = 'SALIDA' AND s.laboratorio_id = @laboratorioId
+              AND m.fecha >= @desde AND m.fecha < @hasta
+            GROUP BY m.id, s.id, m.fecha, s.tipo, e.nombre_completo, pf.nombre_completo, pr.nombre
+            ORDER BY m.fecha DESC", p, cancellationToken: ct))).AsList();
+
+        return new ConsumoDetalleDto { Articulos = articulos, Despachos = despachos };
     }
 
     public async Task<IReadOnlyList<EntradaProveedorDto>> EntradasProveedorAsync(
